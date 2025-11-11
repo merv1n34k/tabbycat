@@ -438,3 +438,4 @@ PUSH_NOTIFICATIONS_SETTINGS = {
     },
     "application_server_key": os.environ.get("WP_APPLICATION_SERVER_KEY")
 }
+ENABLE_PUSH_NOTIFICATIONS = os.environ.get("WP_PRIVATE_KEY") is not None

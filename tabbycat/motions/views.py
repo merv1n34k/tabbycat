@@ -171,7 +171,7 @@ class BaseReleaseMotionsView(AdministratorMixin, LogActionMixin, RoundMixin, Pos
         round.save()
         self.log_action()
 
-        if self.motions_status == Round.MotionsStatus.MOTIONS_RELEASED:
+        if self.motions_status == Round.MotionsStatus.MOTIONS_RELEASED and settings.ENABLE_PUSH_NOTIFICATIONS:
             notification_title = _("%(tournament)s - %(round)s") % {'tournament': self.tournament.short_name, 'round': self.round.name}
             for device in ParticipantWebPushDevice.objects.filter(tournament=self.tournament):
                 with override(device.language or 'en'):

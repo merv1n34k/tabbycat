@@ -5,6 +5,7 @@ import unicodedata
 from itertools import product
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.contrib import messages
 from django.db import DatabaseError, transaction
 from django.db.models import OuterRef, Subquery
@@ -792,6 +793,13 @@ class DrawReleaseView(DrawStatusEdit):
         self.round.save()
         self.log_action()
 
+        if settings.ENABLE_PUSH_NOTIFICATIONS:
+            self.send_push_notifications()
+
+        messages.success(request, _("Released the draw."))
+        return super().post(request, *args, **kwargs)
+
+    def send_push_notifications(self):
         debates = self.round.debate_set.select_related('venue').prefetch_related(
             'venue__venuecategory_set', 'debateadjudicator_set__adjudicator__participantwebpushdevice_set',
             'debateteam_set__team__speaker_set__participantwebpushdevice_set',
@@ -831,9 +839,6 @@ class DrawReleaseView(DrawStatusEdit):
                                     },
                                 }),
                             )
-
-        messages.success(request, _("Released the draw."))
-        return super().post(request, *args, **kwargs)
 
 
 class DrawTeamsReleaseView(DrawStatusEdit):

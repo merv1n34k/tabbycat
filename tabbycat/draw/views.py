@@ -823,6 +823,7 @@ class DrawReleaseView(DrawStatusEdit):
                                     'venue': getattr(debate.venue, 'display_name', _('Room TBA')),
                                     'matchup': matchup,
                                 },
+                                "url": self.request.build_absolute_uri(reverse_tournament('privateurls-person-index', self.tournament, {'url_key': d_adjudicator.adjudicator.url_key})),
                             }),
                         )
             for d_team in debate.debateteam_set.all():
@@ -837,6 +838,7 @@ class DrawReleaseView(DrawStatusEdit):
                                         'venue': getattr(debate.venue, 'display_name', _('Room TBA')),
                                         'matchup': matchup,
                                     },
+                                    "url": self.request.build_absolute_uri(reverse_tournament('privateurls-person-index', self.tournament, {'url_key': speaker.url_key})),
                                 }),
                             )
 

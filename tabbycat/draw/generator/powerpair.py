@@ -618,6 +618,7 @@ class PowerPairedWithAllocatedSidesDrawGenerator(BasePowerPairedDrawGenerator):
         "pairing_method"        : "fold",
         "avoid_conflicts"       : None,
         "pullup_restriction"    : "none",
+        "pullup_penalty"        : 0,
     }
 
     def __init__(self, *args, **kwargs):

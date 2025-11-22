@@ -153,8 +153,10 @@ class ParticipantWebPushDevice(WebPushDevice):
         return super().__str__()
 
     def send_message(self, message):
+        if not self.active:
+            return
         try:
-            super().send_message(message)
+            super().send_message(message, ttl=200)
         except WebPushError:
             self.active = False
             self.save(update_fields=['active'])

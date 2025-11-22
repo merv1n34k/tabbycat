@@ -861,6 +861,7 @@ class AdjFeedbackQuestionsFormset(CustomQuestionFormsetView):
         ],
     }
     question_model = AdjudicatorFeedback
+    success_url = 'adjfeedback-overview'
 
     page_emoji = '❓'
     page_title = gettext_lazy("Custom Feedback Questions")

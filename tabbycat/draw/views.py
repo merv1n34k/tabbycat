@@ -351,6 +351,7 @@ class AdminDrawUtilitiesMixin:
         if hasattr(self, 'highlighted_cells_exist'):
             data['highlighted_cells_exist'] = self.highlighted_cells_exist
         data['expected_nmotions'] = 3 if self.tournament.pref('enable_motions') else (self.round.motion_set.count() or 1)
+        data['has_info_slides'] = self.round.motion_set.exclude(info_slide='').exists()
         return data
 
 

@@ -221,6 +221,11 @@
       {% plural %}
         Unrelease motions to public
       {% endblocktranslate %}
+      {% blocktranslate trimmed count counter=expected_nmotions asvar unrelease_infoslides_text %}
+        Unrelease info-slide to public
+      {% plural %}
+        Unrelease info-slides to public
+      {% endblocktranslate %}
 
       <div class="card-body">
         <h5 class="card-title mb-0">
@@ -272,11 +277,15 @@
 
           {% if round.motion_set.exists %}
               {% if pref.enable_motions or pref.motion_vetoes_enabled or pref.public_motions %}
-                  {% include "components/item-action.html" with type="success" id="triggerReleaseInfoSlidesForm" text=release_infoslides_text url="" to_complete=True %}
                   {% include "components/item-action.html" with type="success" id="triggerReleaseMotionsForm" text=release_text url="" to_complete=True %}
+                  {% if has_info_slides %}
+                    {% include "components/item-action.html" with type="success" id="triggerReleaseInfoSlidesForm" text=release_infoslides_text url="" to_complete=True %}
+                  {% endif %}
               {% else %}
-                  {% include "components/item-action.html" with id="triggerReleaseInfoSlidesForm" text=release_infoslides_text url="" %}
                   {% include "components/item-action.html" with id="triggerReleaseMotionsForm" text=release_text url="" %}
+                  {% if has_info_slides %}
+                    {% include "components/item-action.html" with id="triggerReleaseInfoSlidesForm" text=release_infoslides_text url="" %}
+                  {% endif %}
               {% endif %}
           {% endif %}
 
@@ -296,7 +305,7 @@
 
           {% if round.motion_set.exists %}
               {% include "components/item-action.html" with type="success" id="triggerReleaseMotionsForm" text=release_text url="" to_complete=True %}
-              {% include "components/item-action.html" with id="triggerUnreleaseMotionsForm" url="" text=unrelease_text %}
+              {% include "components/item-action.html" with id="triggerUnreleaseMotionsForm" url="" text=unrelease_infoslides_text %}
           {% endif %}
 
         {% else %}

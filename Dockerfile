@@ -27,7 +27,7 @@ RUN git config --global url."https://".insteadOf git://
 # Install our node/python requirements
 RUN pip install pipenv
 RUN pipenv install --system --deploy
-RUN npm ci --only=production
+RUN npm ci
 
 # Compile all the static files
 RUN npm run build

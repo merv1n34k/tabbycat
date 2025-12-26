@@ -83,8 +83,7 @@ const titleCasePosition = computed(() => {
       >
         <div
           class="db-flex-item-2 db-padding-horizontal text-secondary"
-          v-html="tct('Circle the last digit of the %s\'s score:', [pos])"
-        />
+        >{{ tct('Circle the last digit of the %s\'s score:', [pos]) }}</div>
         <div class="db-flex-item-3 d-flex">
           <div
             v-for="(n, i) in 10"

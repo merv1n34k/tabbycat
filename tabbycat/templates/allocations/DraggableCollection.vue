@@ -13,7 +13,7 @@ const props = defineProps({
 })
 
 const store = useDragAndDropStore()
-const { dragStart, dragEnd } = useDraggable(props)
+const { dragStart, dragEnd, draggableClasses } = useDraggable(props)
 
 const dragStartPanel = (event) => {
   store.setPanelDraggingTracker(true)
@@ -29,8 +29,9 @@ const dragEndPanel = (event) => {
 <template>
   <div
     draggable="true"
-    @dragstart="dragStart"
-    @dragend="dragEnd"
+    :class="draggableClasses"
+    @dragstart="dragStartPanel"
+    @dragend="dragEndPanel"
   >
     <slot />
   </div>

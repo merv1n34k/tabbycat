@@ -1,12 +1,13 @@
 <script setup>
 import DraggableAllocation from './DraggableAllocation.vue'
 import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useDragAndDropStore } from '../../templates/allocations/DragAndDropStore.js'
 
 const props = defineProps(['debateOrPanel', 'handleDebateOrPanelDrop', 'handlePanelSwap'])
 
 const store = useDragAndDropStore()
-const allocatableItems = computed(() => store.allocatableItems)
+const { allocatableItems } = storeToRefs(store)
 
 const average = (numbers) => numbers.reduce((a, b) => a + b) / numbers.length
 

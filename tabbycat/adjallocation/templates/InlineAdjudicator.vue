@@ -124,9 +124,6 @@ const showHovers = () => {
   }
 }
 
-const hideHovers = () => {
-  store.unsetHoverVenueConstraints()
-}
 </script>
 
 <template>
@@ -134,8 +131,8 @@ const hideHovers = () => {
     class="text-truncate small px-1 py-1 inline-adjudicator d-flex align-items-center hover-target"
     :class="[highlightsCSS, conflictsCSS, hoverConflictsCSS, venueConstraintOutlineCSS]"
     @mouseenter="showHovers"
-    @mouseleave="hideHovers"
+    @mouseleave="store.unsetHoverVenueConstraints"
   >
-    <div>{{ displayName }}<span v-if="symbol"> {{ symbol }}</span></div>
+    <div>{{ displayName }}<span v-if="symbol">&nbsp;{{ symbol }}</span></div>
   </div>
 </template>

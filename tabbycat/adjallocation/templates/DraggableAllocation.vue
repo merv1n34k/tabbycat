@@ -6,6 +6,7 @@ import DraggableAdjudicator from './DraggableAdjudicator.vue'
 import { useDragAndDropStore } from '../../templates/allocations/DragAndDropStore.js'
 import { useDjangoI18n } from '../../templates/composables/useDjangoI18n.js'
 import { useHoverConflicts } from '../../templates/composables/useHoverConflicts.js'
+import { storeToRefs } from 'pinia'
 
 const props = defineProps({
   debateOrPanel: { type: Object, required: true },
@@ -16,6 +17,7 @@ const props = defineProps({
 })
 
 const store = useDragAndDropStore()
+const { allAdjudicators, panelIsDragging } = storeToRefs(store)
 const { gettext } = useDjangoI18n()
 const { showHoverConflicts, hideHoverConflicts } = useHoverConflicts()
 
@@ -23,9 +25,6 @@ const isHovered = ref(false)
 
 const adjudicators = computed(() => props.debateOrPanel.adjudicators)
 const chairID = computed(() => adjudicators.value?.C?.[0] ?? null)
-
-const allAdjudicators = computed(() => store.allAdjudicators)
-const panelIsDragging = computed(() => store.panelIsDragging)
 
 const getDragPayload = (adjID, position) => {
   return { item: adjID, assignment: props.debateOrPanel.id, position: position }
@@ -77,7 +76,7 @@ const hidePanelHoverConflicts = () => {
     </div>
 
     <div
-      :class="['align-items-center justify-content-center panel-handle', ]"
+      class="align-items-center justify-content-center panel-handle"
       @mouseenter="showPanelHoverConflicts"
       @mouseleave="hidePanelHoverConflicts"
     >

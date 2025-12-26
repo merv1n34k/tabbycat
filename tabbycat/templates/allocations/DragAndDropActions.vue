@@ -14,14 +14,6 @@ const titleCase = (title) => {
   return title.charAt(0).toUpperCase() + title.substr(1)
 }
 
-const toggleHighlight = (type) => {
-  store.toggleHighlight(type)
-}
-
-const setSorting = (sortType) => {
-  store.setSorting(sortType)
-}
-
 const isElimination = computed(() => round.value?.stage === 'E')
 
 const currentHighlightKey = computed(() => {
@@ -94,7 +86,7 @@ const shardingEnabled = computed(() => sharding.value.index !== null)
           <a
             class="dropdown-item"
             href="#"
-            @click="setSorting('room_rank')"
+            @click="store.setSorting('room_rank')"
           >
             <span v-if="isElimination">Sort by Break Rank</span>
             <span v-if="!isElimination">Sort by Room Rank</span>
@@ -103,14 +95,14 @@ const shardingEnabled = computed(() => sharding.value.index !== null)
             v-if="!isElimination"
             class="dropdown-item"
             href="#"
-            @click="setSorting('bracket')"
+            @click="store.setSorting('bracket')"
           >
             Sort by Bracket
           </a>
           <a
             class="dropdown-item"
             href="#"
-            @click="setSorting('importance')"
+            @click="store.setSorting('importance')"
           >
             Sort by Importance
           </a>
@@ -118,7 +110,7 @@ const shardingEnabled = computed(() => sharding.value.index !== null)
             v-if="!isElimination"
             class="dropdown-item"
             href="#"
-            @click="setSorting('liveness')"
+            @click="store.setSorting('liveness')"
           >
             Sort by Liveness
           </a>
@@ -158,10 +150,9 @@ const shardingEnabled = computed(() => sharding.value.index !== null)
       <button
         v-for="(highlight, highlightKey) in highlights"
         :class="['btn btn-outline-primary', highlight.active ? 'btn-primary active' : '']"
-        @click="toggleHighlight(highlightKey)"
+        @click="store.toggleHighlight(highlightKey)"
       >
-        <span :class="highlight.active ? 'd-none' : ''"><i data-feather="eye" /></span>
-        <span :class="highlight.active ? '' : 'd-none'"><i data-feather="eye-off" /></span>
+        <span><i :data-feather="highlight.active ? 'eye-off' : 'eye'" /></span>
         <span class="pl-1">{{ gettext(titleCase(highlightKey)) }}</span>
       </button>
     </div>

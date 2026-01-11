@@ -255,6 +255,7 @@ class BaseRecordView(SingleObjectFromTournamentMixin, VueTableTemplateView):
     @staticmethod
     def allocations_set(obj, admin, tournament):
         model_related = {'Team': 'debateteam_set', 'Adjudicator': 'debateadjudicator_set'}[type(obj).__name__]
+        draw_statuses = [Round.Status.RELEASED, Round.Status.TEAMS_RELEASED] if type(obj).__name__ == 'Team' else [Round.Status.RELEASED]
         try:
             qs = getattr(obj, model_related).filter(
                 debate__round__in=tournament.current_rounds).select_related('debate__round')
@@ -262,16 +263,20 @@ class BaseRecordView(SingleObjectFromTournamentMixin, VueTableTemplateView):
                 qs = qs.prefetch_related(Prefetch('debate__round__roundmotion_set',
                     queryset=RoundMotion.objects.select_related('motion')))
             else:
-                qs = qs.filter(debate__round__draw_status=Round.Status.RELEASED).prefetch_related(
+                qs = qs.filter(debate__round__draw_status__in=draw_statuses).prefetch_related(
                     Prefetch('debate__round__roundmotion_set',
                         queryset=RoundMotion.objects.filter(round__motions_status=Round.MotionsStatus.MOTIONS_RELEASED).select_related('motion')))
             return qs
         except ObjectDoesNotExist:
             return None
 
+    @property
+    def draw_released(self):
+        return self.tournament.current_round.draw_status == Round.Status.RELEASED
+
     def get_context_data(self, **kwargs):
         kwargs['admin_page'] = self.admin
-        kwargs['draw_released'] = self.tournament.current_round.draw_status == Round.Status.RELEASED
+        kwargs['draw_released'] = self.draw_released
         kwargs['use_code_names'] = self.use_team_code_names()
         kwargs[self.model_kwarg] = self.allocations_set(self.object, self.admin, self.tournament)
 
@@ -301,6 +306,10 @@ class BaseTeamRecordView(BaseRecordView):
     def get_page_emoji(self):
         if self.tournament.pref('show_emoji'):
             return self.object.emoji
+
+    @property
+    def draw_released(self):
+        return self.tournament.current_round.draw_status in [Round.Status.RELEASED, Round.Status.TEAMS_RELEASED]
 
     def get_context_data(self, **kwargs):
         kwargs['team_short_name'] = self.object.code_name if self.use_team_code_names() else self.object.short_name

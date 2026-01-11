@@ -165,6 +165,22 @@ class FeedbackTableBuilder(TabbycatTableBuilder):
         owed_data = [_owed_cell(progress) for progress in progress_list]
         self.add_column(owed_header, owed_data)
 
+        def _percentage_cell(progress):
+            p = progress.num_fulfilled() / progress.num_expected() * 100 if progress.num_expected() else 100
+            cell = {
+                'text': '%.1f%%' % p,
+                'sort': p,
+            }
+            return cell
+
+        percentage_header = {
+            'key': 'percent',
+            'icon': 'percent',
+            'tooltip': _("% Submitted"),
+        }
+        percentage_data = [_percentage_cell(progress) for progress in progress_list]
+        self.add_column(percentage_header, percentage_data)
+
         if self._show_record_links:
 
             def _record_link(progress):

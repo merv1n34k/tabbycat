@@ -13,6 +13,7 @@ from .models import Invitation
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
+
     from utils.tables import TabbycatTableBuilder
 
 

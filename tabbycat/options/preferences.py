@@ -1720,6 +1720,20 @@ class CodeNameGenerator(ChoicePreference):
 
 
 @tournament_preferences_registry.register
+class RegistrationConfirmation(ChoicePreference):
+    help_text = _("Should registration be confirmed by tournament staff")
+    verbose_name = _("Registration confirmation")
+    section = registration
+    name = 'registration_confirmation'
+    choices = (
+        ('always', _("Always")),
+        ('open', _("Only for open (non-institutional) registration")),
+        ('never', _("Never")),
+    )
+    default = 'never'
+
+
+@tournament_preferences_registry.register
 class InstitutionRegisterMessage(LongStringPreference):
     help_text = _("Message to be displayed on the institution registration form")
     verbose_name = _("Institution register message")

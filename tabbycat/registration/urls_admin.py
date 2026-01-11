@@ -17,12 +17,14 @@ urlpatterns = [
     ])),
     path('teams/', include([
         path('', views.TeamRegistrationTableView.as_view(), name='reg-team-list'),
+        path('<int:pk>/confirm/', views.ConfirmTeamRegistrationView.as_view(), name='reg-team-confirm'),
         path('questions/',
             views.CustomQuestionFormsetView.as_view(question_model=Team, success_url='reg-team-list'),
             name='reg-team-questions'),
     ])),
     path('adjudicators/', include([
         path('', views.AdjudicatorRegistrationTableView.as_view(), name='reg-adjudicator-list'),
+        path('<int:pk>/confirm/', views.ConfirmAdjudicatorRegistrationView.as_view(), name='reg-adjudicator-confirm'),
         path('questions/',
             views.CustomQuestionFormsetView.as_view(question_model=Adjudicator, success_url='reg-adjudicator-list'),
             name='reg-adjudicator-questions'),

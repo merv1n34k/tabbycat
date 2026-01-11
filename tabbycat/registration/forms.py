@@ -5,7 +5,7 @@ from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 
 from participants.emoji import EMOJI_RANDOM_FIELD_CHOICES, pick_unused_emoji
-from participants.models import Adjudicator, Coach, Institution, Speaker, Team, TournamentInstitution
+from participants.models import Adjudicator, Coach, Institution, RegistrationStatus, Speaker, Team, TournamentInstitution
 from privateurls.utils import populate_url_keys
 
 from .form_utils import CustomQuestionsFormMixin
@@ -97,7 +97,7 @@ class TeamForm(CustomQuestionsFormMixin, forms.ModelForm):
             self.fields['institution'].initial = self.institution
 
         if 'emoji' in self.fields:
-            used_emoji = self.tournament.team_set.filter(emoji__isnull=False).values_list('emoji', flat=True)
+            used_emoji = Team.objects.all_with_unconfirmed.filter(tournament=self.tournament, emoji__isnull=False).values_list('emoji', flat=True)
             self.fields['emoji'].choices = [e for e in EMOJI_RANDOM_FIELD_CHOICES if e[0] not in used_emoji]
             self.fields['emoji'].initial = random.choice(self.fields['emoji'].choices)[0]
 
@@ -130,6 +130,8 @@ class TeamForm(CustomQuestionsFormMixin, forms.ModelForm):
 
     def save(self):
         self.instance.tournament = self.tournament
+        if self.tournament.pref('registration_confirmation') == 'always' or (self.tournament.pref('registration_confirmation') == 'open' and self.institution is None):
+            self.instance.registration_status = RegistrationStatus.UNCONFIRMED
 
         if self.institution:
             self.instance.institution = self.institution
@@ -216,6 +218,8 @@ class AdjudicatorForm(CustomQuestionsFormMixin, forms.ModelForm):
 
     def save(self):
         self.instance.tournament = self.tournament
+        if self.tournament.pref('registration_confirmation') == 'always' or (self.tournament.pref('registration_confirmation') == 'open' and self.institution is None):
+            self.instance.registration_status = RegistrationStatus.UNCONFIRMED
         if self.institution:
             self.instance.institution = self.institution
 

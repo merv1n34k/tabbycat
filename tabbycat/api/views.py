@@ -423,7 +423,11 @@ class TeamViewSet(TournamentAPIMixin, TournamentPublicAPIMixin, ModelViewSet):
         if not self.request.user or not self.request.user.is_staff:
             category_prefetch.queryset = category_prefetch.queryset.filter(public=True)
 
-        return super().get_queryset().select_related('tournament').prefetch_related(
+        base_qs = super().get_queryset()
+        if self.request.user.is_staff:
+            base_qs = self.model.objects.all_with_unconfirmed.filter(**self.lookup_kwargs())
+
+        return base_qs.select_related('tournament').prefetch_related(
             Prefetch(
                 'speaker_set',
                 queryset=Speaker.objects.all().prefetch_related('answers__question__tournament', category_prefetch).select_related('team__tournament', 'checkin_identifier'),
@@ -463,11 +467,15 @@ class AdjudicatorViewSet(TournamentAPIMixin, TournamentPublicAPIMixin, ModelView
         params = AdjudicatorParamsSerializer(data=self.request.query_params)
         params.is_valid(raise_exception=True)
 
+        base_qs = super().get_queryset()
+        if self.request.user.is_staff:
+            base_qs = self.model.objects.all_with_unconfirmed.filter(**self.lookup_kwargs())
+
         filters = Q()
         if (breaking := params.validated_data.get('break')) and self.get_break_permission():
             filters &= Q(breaking=breaking)
 
-        return super().get_queryset().select_related('checkin_identifier').prefetch_related(
+        return base_qs.select_related('checkin_identifier').prefetch_related(
             'team_conflicts', 'team_conflicts__tournament',
             'adjudicator_conflicts', 'adjudicator_conflicts__tournament',
             'institution_conflicts', 'venue_constraints__category__tournament',

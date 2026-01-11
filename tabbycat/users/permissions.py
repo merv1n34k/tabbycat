@@ -157,6 +157,7 @@ class Permission(TextChoices):
     VIEW_EVENTS = 'view.events', _("view events")
 
     VIEW_REGISTRATION = 'view.registration', _("view registration responses")
+    CONFIRM_REGISTRATION = 'confirm.registration', _("confirm registration responses")
 
 
 permission_type = Union[Permission, bool]

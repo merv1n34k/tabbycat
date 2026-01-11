@@ -247,7 +247,10 @@ class BaseRecordView(SingleObjectFromTournamentMixin, VueTableTemplateView):
     allow_null_tournament = True
 
     def get_queryset(self):
-        return super().get_queryset().select_related('institution__region')
+        qs = super().get_queryset() if not self.admin else self.model.objects.all_with_unconfirmed.filter(
+            Q(tournament=self.tournament) | Q(tournament__isnull=self.allow_null_tournament),
+        )
+        return qs.select_related('tournament', 'institution__region')
 
     def use_team_code_names(self):
         return use_team_code_names(self.tournament, self.admin, user=self.request.user)

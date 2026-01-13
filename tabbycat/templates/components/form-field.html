@@ -14,7 +14,7 @@
   {{ field|addcss:"form-control" }}
 
   {% if field.help_text  %}
-    <small class="form-text text-muted">{{ field.help_text }}</small>
+    <small class="form-text text-muted">{{ field.help_text|linebreaks }}</small>
   {% endif %}
 
   {% if field.errors %}

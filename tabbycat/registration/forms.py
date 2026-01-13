@@ -1,7 +1,6 @@
 import random
 
 from django import forms
-from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 
 from participants.emoji import EMOJI_RANDOM_FIELD_CHOICES, pick_unused_emoji
@@ -16,8 +15,8 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
     institution_name = Institution._meta.get_field('name')
     institution_code = Institution._meta.get_field('code')
 
-    name = forms.CharField(max_length=institution_name.max_length, label=capfirst(institution_name.verbose_name), help_text=institution_name.help_text)
-    code = forms.CharField(max_length=institution_code.max_length, label=capfirst(institution_code.verbose_name), help_text=institution_code.help_text)
+    name = forms.CharField(max_length=institution_name.max_length, label=_("Institution name"), help_text=institution_name.help_text)
+    code = forms.CharField(max_length=institution_code.max_length, label=_("Institution abbreviation"), help_text=institution_code.help_text)
 
     field_order = ('name', 'code', 'teams_requested', 'adjudicators_requested')
 

@@ -475,17 +475,21 @@ class InstitutionRegistrationTableView(TournamentMixin, AdministratorMixin, VueT
         table = TabbycatTableBuilder(view=self, title=_('Responses'), sort_key='name')
         table.add_column({'key': 'name', 'title': _("Name")}, [t_inst.institution.name for t_inst in t_institutions])
         table.add_column({'key': 'code', 'title': _("Code")}, [t_inst.institution.code for t_inst in t_institutions])
-        table.add_column({'key': 'name', 'title': _("Coach")}, [{
+        table.add_column({'key': 'coach', 'title': _("Coach")}, [{
             'text': (coach := t_inst.coach_set.first()).name,
             'link': reverse_tournament('reg-inst-landing', self.tournament, kwargs={'url_key': coach.url_key}),
         } for t_inst in t_institutions])
-        table.add_column({'key': 'name', 'title': _("Email")}, [{
+        table.add_column({'key': 'email', 'title': _("Email")}, [{
             'text': (email := t_inst.coach_set.first().email),
             'link': 'mailto:%s' % email,
         } for t_inst in t_institutions])
 
-        handle_question_columns(table, [t_inst.coach_set.first() for t_inst in t_institutions], questions=self.tournament.question_set.filter(for_content_type=ContentType.objects.get_for_model(Coach)).order_by('seq'))
-        
+        handle_question_columns(
+            table,
+            [t_inst.coach_set.first() for t_inst in t_institutions],
+            questions=self.tournament.question_set.filter(for_content_type=ContentType.objects.get_for_model(Coach)).order_by('seq'),
+        )
+
         if self.tournament.pref('reg_institution_slots'):
             table.add_column({'key': 'teams_requested', 'title': _("Teams Requested")}, [
                 {'text': t_inst.teams_requested, 'sort': t_inst.teams_requested} for t_inst in t_institutions

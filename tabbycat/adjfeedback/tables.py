@@ -82,6 +82,7 @@ class FeedbackTableBuilder(TabbycatTableBuilder):
         }
         feedback_data = [{
             'text': self.get_formatted_adj_score(adj.feedback_score),
+            'sort': adj.feedback_score,
             'tooltip': _("This adjudicator's feedback average"),
         } for adj in adjudicators]
 
@@ -109,6 +110,7 @@ class FeedbackTableBuilder(TabbycatTableBuilder):
         }
         diff_data = [{
             'text': '%0.1f' % adj.feedback_variance if adj.feedback_variance is not None else '',
+            'sort': adj.feedback_variance,
             'tooltip': _("The standard deviation of this adjudicator's current scores"),
         } for adj in adjudicators]
 

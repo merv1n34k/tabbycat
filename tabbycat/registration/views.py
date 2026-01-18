@@ -74,6 +74,7 @@ class CreateInstitutionFormView(LogActionMixin, PublicTournamentPageMixin, Custo
 
     public_page_preference = 'institution_registration'
     action_log_type = ActionLogEntry.ActionType.INSTITUTION_REGISTER
+    action_log_content_object_attr = 'object'
 
     def get_success_url(self, coach):
         return reverse_tournament('reg-inst-landing', self.tournament, kwargs={'url_key': coach.url_key})
@@ -108,6 +109,7 @@ class BaseCreateTeamFormView(LogActionMixin, PublicTournamentPageMixin, CustomQu
 
     public_page_preference = 'open_team_registration'
     action_log_type = ActionLogEntry.ActionType.TEAM_REGISTER
+    action_log_content_object_attr = 'object'
 
     REFERENCE_GENERATORS = {
         'user': '_custom_reference',
@@ -294,6 +296,7 @@ class BaseCreateAdjudicatorFormView(LogActionMixin, PublicTournamentPageMixin, C
 
     public_page_preference = 'open_adj_registration'
     action_log_type = ActionLogEntry.ActionType.ADJUDICATOR_REGISTER
+    action_log_content_object_attr = 'object'
 
     def get_page_subtitle(self):
         if getattr(self, 'institution', None) is not None:
@@ -345,6 +348,7 @@ class CreateSpeakerFormView(LogActionMixin, PublicTournamentPageMixin, CustomQue
     page_emoji = '👄'
     page_title = gettext_lazy("Register Speaker")
     action_log_type = ActionLogEntry.ActionType.SPEAKER_REGISTER
+    action_log_content_object_attr = 'object'
 
     @property
     def team(self):

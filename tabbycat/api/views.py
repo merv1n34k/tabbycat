@@ -331,7 +331,7 @@ class BreakingTeamsView(TournamentAPIMixin, TournamentPublicAPIMixin, GenerateBr
     @extend_schema(summary="Generate break")
     def create(self, request, *args, **kwargs):
         self.generate_break((self.break_category,))
-        self.log_action(type=ActionLogEntry.ActionType.BREAK_GENERATE_ONE)
+        self.log_action(type=ActionLogEntry.ActionType.BREAK_GENERATE_ONE, agent=ActionLogEntry.Agent.API)
         return self.list(request, *args, **kwargs)
 
     @extend_schema(summary="Delete break")
@@ -340,7 +340,7 @@ class BreakingTeamsView(TournamentAPIMixin, TournamentPublicAPIMixin, GenerateBr
         Destroy is normally for a specific instance, now QuerySet.
         """
         self.filter_queryset(self.get_queryset()).delete()
-        self.log_action(type=ActionLogEntry.ActionType.BREAK_DELETE)
+        self.log_action(type=ActionLogEntry.ActionType.BREAK_DELETE, agent=ActionLogEntry.Agent.API)
         return Response(status=204)  # No content
 
     @extend_schema(summary="Update remark and regenerate break")
@@ -1069,7 +1069,7 @@ class PairingViewSet(RoundAPIMixin, ModelViewSet):
     @extend_schema(summary="Delete all pairings in the round")
     def delete_all(self, request, *args, **kwargs):
         self.get_queryset().delete()
-        self.log_action(ActionLogEntry.ActionType.DRAW_REGENERATE)
+        self.log_action(type=ActionLogEntry.ActionType.DRAW_REGENERATE, agent=ActionLogEntry.Agent.API)
         return Response(status=204)  # No content
 
 
@@ -1189,7 +1189,7 @@ class BallotViewSet(RoundAPIMixin, TournamentPublicAPIMixin, ModelViewSet):
         instance = self.get_object()
         instance.discarded = True
         instance.save()
-        self.log_action(ActionLogEntry.ActionType.BALLOT_DISCARD)
+        self.log_action(type=ActionLogEntry.ActionType.BALLOT_DISCARD, agent=ActionLogEntry.Agent.API)
         return self.retrieve(request, *args, **kwargs)
 
 
@@ -1395,7 +1395,7 @@ class AvailabilitiesViewSet(RoundAPIMixin, AdministratorAPIMixin, APIView):
 
             RoundAvailability.objects.bulk_create(
                 [RoundAvailability(content_type=contenttype, round=self.round, object_id=id) for id in ids - existing])
-        self.log_action(type=self.action_log_type_updated)
+        self.log_action(type=self.action_log_type_updated, agent=ActionLogEntry.Agent.API)
 
         return self.get(request, *args, **kwargs)
 
@@ -1406,7 +1406,7 @@ class AvailabilitiesViewSet(RoundAPIMixin, AdministratorAPIMixin, APIView):
             contenttype = ContentType.objects.get_for_model(model)
             RoundAvailability.objects.bulk_create(
                 [RoundAvailability(content_type=contenttype, round=self.round, object_id=p.id) for p in participants])
-        self.log_action(type=self.action_log_type_updated)
+        self.log_action(type=self.action_log_type_updated, agent=ActionLogEntry.Agent.API)
         return self.get(request, *args, **kwargs)
 
     @extend_schema(summary="Mark objects as unavailable")
@@ -1418,13 +1418,13 @@ class AvailabilitiesViewSet(RoundAPIMixin, AdministratorAPIMixin, APIView):
                 content_type=contenttype, round=self.round,
                 object_id__in=[p.id for p in participants],
             ).delete()
-        self.log_action(type=self.action_log_type_updated)
+        self.log_action(type=self.action_log_type_updated, agent=ActionLogEntry.Agent.API)
         return self.get(request, *args, **kwargs)
 
     @extend_schema(summary="Delete class of availabilities", parameters=extra_params)
     def delete(self, request, *args, **kwargs):
         self.get_queryset().delete()
-        self.log_action(type=self.action_log_type_updated)
+        self.log_action(type=self.action_log_type_updated, agent=ActionLogEntry.Agent.API)
         return Response(status=204)
 
 
@@ -1457,7 +1457,7 @@ class PreformedPanelViewSet(RoundAPIMixin, AdministratorAPIMixin, ModelViewSet):
     @extend_schema(summary="Delete all preformed panels from round")
     def delete_all(self, request, *args, **kwargs):
         self.get_queryset().delete()
-        self.log_action(ActionLogEntry.ActionType.PREFORMED_PANELS_DELETE)
+        self.log_action(type=ActionLogEntry.ActionType.PREFORMED_PANELS_DELETE, agent=ActionLogEntry.Agent.API)
         return Response(status=204)  # No content
 
     @extend_schema(summary="Add blank preformed panels")
@@ -1469,7 +1469,7 @@ class PreformedPanelViewSet(RoundAPIMixin, AdministratorAPIMixin, ModelViewSet):
                 'bracket_min': bracket_min,
                 'liveness': liveness,
             })
-        self.log_action(self.action_log_type_created)
+        self.log_action(type=self.action_log_type_created, agent=ActionLogEntry.Agent.API)
 
         return self.get(request, *args, **kwargs)
 

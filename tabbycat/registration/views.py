@@ -1,5 +1,7 @@
 from typing import Sequence
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.forms import SimpleArrayField
@@ -14,6 +16,7 @@ from formtools.wizard.views import SessionWizardView
 
 from actionlog.mixins import LogActionMixin
 from actionlog.models import ActionLogEntry
+from notifications.models import BulkNotification
 from participants.emoji import EMOJI_NAMES
 from participants.models import Adjudicator, Coach, RegistrationStatus, Speaker, Team, TournamentInstitution
 from tournaments.mixins import PublicTournamentPageMixin, TournamentMixin
@@ -93,6 +96,21 @@ class CreateInstitutionFormView(LogActionMixin, PublicTournamentPageMixin, Custo
         ]
         populate_invitation_url_keys(invitations, self.tournament)
         Invitation.objects.bulk_create(invitations)
+
+        subject = self.tournament.pref('institution_registration_email_subject')
+        body = self.tournament.pref('institution_registration_email_body')
+        if subject and body and coach.email:
+            landing_url = self.request.build_absolute_uri(
+                reverse_tournament('reg-inst-landing', self.tournament, kwargs={'url_key': coach.url_key}),
+            )
+            async_to_sync(get_channel_layer().send)("notifications", {
+                "type": "email",
+                "message": BulkNotification.EventType.INSTITUTION_REG,
+                "extra": {"tournament_id": self.tournament.pk, "url": landing_url},
+                "send_to": [coach.pk],
+                "subject": subject,
+                "body": body,
+            })
 
         messages.success(self.request, _("Your institution %s has been registered!") % t_inst.institution.name)
         self.log_action()
@@ -529,7 +547,38 @@ class InstitutionRegistrationTableView(TournamentMixin, AdministratorMixin, VueT
         return kwargs
 
     def form_valid(self, form):
+        qs_before = list(
+            self.tournament.tournamentinstitution_set.values_list('institution_id', 'teams_allocated', 'adjudicators_allocated'),
+        )
+        old_allocations = {inst_id: (teams, adjs) for inst_id, teams, adjs in qs_before}
+
         form.save()
+
+        coach_ids = []
+        for t_inst in self.tournament.tournamentinstitution_set.select_related('institution').prefetch_related('coach_set').all():
+            new_teams = t_inst.teams_allocated
+            new_adjs = t_inst.adjudicators_allocated
+            old_teams, old_adjs = old_allocations.get(t_inst.institution_id, (0, 0))
+            if (new_teams, new_adjs) != (old_teams, old_adjs):
+                coach_ids.extend([coach.pk for coach in t_inst.coach_set.all() if coach.email])
+
+        subject = self.tournament.pref('slots_allocated_email_subject')
+        body = self.tournament.pref('slots_allocated_email_body')
+        if coach_ids and subject and body and self.tournament.pref('reg_institution_slots'):
+            async_to_sync(get_channel_layer().send)("notifications", {
+                "type": "email",
+                "message": BulkNotification.EventType.SLOTS_ALLOCATED,
+                "extra": {
+                    "tournament_id": self.tournament.pk,
+                    "url": self.request.build_absolute_uri(
+                        reverse_tournament('reg-inst-landing', self.tournament, kwargs={'url_key': '0'}),
+                    )[:-2],
+                },
+                "send_to": coach_ids,
+                "subject": subject,
+                "body": body,
+            })
+
         messages.success(self.request, _("Successfully modified institution allocations"))
 
         return super().form_valid(form)

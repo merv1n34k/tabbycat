@@ -8,6 +8,7 @@ from . import views
 urlpatterns = [
     path('institutions/', include([
         path('', views.InstitutionRegistrationTableView.as_view(), name='reg-institution-list'),
+        path('<int:pk>/edit/', views.AdminEditInstitutionFormView.as_view(), name='reg-institution-edit'),
         path('questions/',
             views.CustomQuestionFormsetView.as_view(question_model=TournamentInstitution, success_url='reg-institution-list'),
             name='reg-institution-questions'),

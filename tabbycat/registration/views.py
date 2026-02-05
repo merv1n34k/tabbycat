@@ -6,7 +6,7 @@ from django.contrib.postgres.forms import SimpleArrayField
 from django.db.models import Count, Max, Prefetch, Sum
 from django.db.models.functions import Coalesce
 from django.forms import HiddenInput, modelformset_factory
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _, gettext_lazy, ngettext
 from django.views.generic.edit import FormView
@@ -15,7 +15,14 @@ from formtools.wizard.views import SessionWizardView
 from actionlog.mixins import LogActionMixin
 from actionlog.models import ActionLogEntry
 from participants.emoji import EMOJI_NAMES
-from participants.models import Adjudicator, Coach, RegistrationStatus, Speaker, Team, TournamentInstitution
+from participants.models import (
+    Adjudicator,
+    Coach,
+    RegistrationStatus,
+    Speaker,
+    Team,
+    TournamentInstitution,
+)
 from tournaments.mixins import PublicTournamentPageMixin, TournamentMixin
 from users.permissions import Permission
 from utils.misc import reverse_tournament
@@ -23,7 +30,15 @@ from utils.mixins import AdministratorMixin
 from utils.tables import TabbycatTableBuilder
 from utils.views import ModelFormSetView, PostOnlyRedirectView, VueTableTemplateView
 
-from .forms import AdjudicatorForm, InstitutionCoachForm, ParticipantAllocationForm, SpeakerForm, TeamForm, TournamentInstitutionForm
+from .forms import (
+    AdjudicatorForm,
+    InstitutionCoachForm,
+    InstitutionEditForm,
+    ParticipantAllocationForm,
+    SpeakerForm,
+    TeamForm,
+    TournamentInstitutionForm,
+)
 from .models import Invitation, Question
 from .utils import add_confirm_button_column, populate_invitation_url_keys
 
@@ -417,8 +432,40 @@ class InstitutionalLandingPageView(TournamentMixin, InstitutionalRegistrationMix
         return [self.get_adj_table(), self.get_team_table()]
 
     def get_context_data(self, **kwargs):
-        kwargs["coach"] = get_object_or_404(Coach, tournament_institution__tournament=self.tournament, url_key=kwargs['url_key'])
+        coach = get_object_or_404(
+            Coach.objects.select_related('tournament_institution').prefetch_related(
+                'tournament_institution__answers__question',
+                'answers__question',
+            ),
+            tournament_institution__tournament=self.tournament,
+            url_key=kwargs['url_key'],
+        )
+        kwargs["coach"] = coach
         kwargs["institution"] = self.institution
+        t_inst = coach.tournament_institution
+        kwargs["tournament_institution"] = t_inst
+
+        # Slot counts for this institution
+        if self.tournament.pref('reg_institution_slots'):
+            kwargs["teams_requested"] = t_inst.teams_requested
+            kwargs["teams_allocated"] = t_inst.teams_allocated
+            kwargs["adjudicators_requested"] = t_inst.adjudicators_requested
+            kwargs["adjudicators_allocated"] = t_inst.adjudicators_allocated
+        if self.tournament.pref('institution_participant_registration'):
+            kwargs["teams_registered"] = Team.objects.all_with_unconfirmed.filter(
+                tournament=self.tournament, institution=self.institution,
+            ).count()
+            kwargs["adjudicators_registered"] = Adjudicator.objects.all_with_unconfirmed.filter(
+                tournament=self.tournament, institution=self.institution,
+            ).count()
+
+        # Form answers for review (ordered by question sequence)
+        kwargs["institution_answers"] = list(
+            t_inst.answers.select_related('question').order_by('question__seq'),
+        )
+        kwargs["coach_answers"] = list(
+            coach.answers.select_related('question').order_by('question__seq'),
+        )
 
         invitations = Invitation.objects.filter(tournament=self.tournament, institution=self.institution).select_related('for_content_type')
         for invitation in invitations:
@@ -427,6 +474,102 @@ class InstitutionalLandingPageView(TournamentMixin, InstitutionalRegistrationMix
                 # replace with query={'key': invitation.url_key} in Django 5.2
             )
         return super().get_context_data(**kwargs)
+
+
+class AdminEditInstitutionFormView(TournamentMixin, AdministratorMixin, FormView):
+    """Admin editing the answers of an institution (FormView with separate sections for institution and primary contact)."""
+
+    form_class = InstitutionEditForm
+    template_name = 'registration/institution_edit.html'
+    page_emoji = '🏫'
+    page_title = gettext_lazy("Edit institution registration")
+    view_permission = Permission.VIEW_REGISTRATION
+    edit_permission = Permission.VIEW_REGISTRATION
+
+    def get_t_inst(self):
+        return get_object_or_404(
+            TournamentInstitution.objects.select_related('institution').prefetch_related(
+                'answers__question',
+                'coach_set__answers__question',
+            ),
+            tournament=self.tournament,
+            pk=self.kwargs['pk'],
+        )
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['tournament'] = self.tournament
+        kwargs['t_inst'] = self.get_t_inst()
+        return kwargs
+
+    def get_success_url(self):
+        return reverse_tournament('reg-institution-list', self.tournament)
+
+    def get_context_data(self, **kwargs):
+        kwargs['t_inst'] = self.get_t_inst()
+        kwargs['page_subtitle'] = kwargs['t_inst'].institution.name
+        return super().get_context_data(**kwargs)
+
+    def form_valid(self, form):
+        t_inst = form.t_inst
+        inst_form = form.institution_form
+        coach_form = form.coach_form
+
+        inst = t_inst.institution
+        inst.name = inst_form.cleaned_data['name']
+        inst.code = inst_form.cleaned_data['code']
+        inst.save()
+
+        if 'teams_requested' in inst_form.fields:
+            t_inst.teams_requested = inst_form.cleaned_data.get('teams_requested', 0)
+            t_inst.adjudicators_requested = inst_form.cleaned_data.get('adjudicators_requested', 0)
+        t_inst.save()
+
+        inst_form.save_answers(t_inst, replace_existing=True)
+        coach_form.save()
+
+        messages.success(self.request, _("Institution %s updated.") % inst.name)
+        return super().form_valid(form)
+
+
+class CoachViewResponseFormView(PublicTournamentPageMixin, InstitutionalRegistrationMixin, FormView):
+    # This form is read-only: coaches can view their institution and primary contact response but cannot edit.
+    form_class = InstitutionEditForm
+    template_name = 'registration/institution_view_response.html'
+    page_emoji = '📋'
+    page_title = gettext_lazy("Registration form response")
+
+    def get_page_subtitle(self):
+        return "for %s" % self.institution.name
+
+    def is_page_enabled(self, tournament):
+        return True
+
+    def get_t_inst(self):
+        return get_object_or_404(
+            TournamentInstitution.objects.select_related('institution').prefetch_related(
+                'answers__question',
+                'coach_set__answers__question',
+            ),
+            tournament=self.tournament,
+            coach__url_key=self.kwargs['url_key'],
+        )
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.pop('institution', None)
+        kwargs['tournament'] = self.tournament
+        kwargs['t_inst'] = self.get_t_inst()
+        kwargs['read_only'] = True
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        kwargs['t_inst'] = self.get_t_inst()
+        kwargs['url_key'] = self.kwargs['url_key']
+        return super().get_context_data(**kwargs)
+
+    def form_valid(self, form):
+        return HttpResponse(status=403)
 
 
 class InstitutionalCreateTeamFormView(InstitutionalRegistrationMixin, BaseCreateTeamFormView):
@@ -477,7 +620,10 @@ class InstitutionRegistrationTableView(TournamentMixin, AdministratorMixin, VueT
         form = self.get_form()
 
         table = TabbycatTableBuilder(view=self, title=_('Responses'), sort_key='name')
-        table.add_column({'key': 'name', 'title': _("Name")}, [t_inst.institution.name for t_inst in t_institutions])
+        table.add_column({'key': 'name', 'title': _("Name")}, [
+            {'text': t_inst.institution.name, 'link': reverse_tournament('reg-institution-edit', self.tournament, kwargs={'pk': t_inst.pk})}
+            for t_inst in t_institutions
+        ])
         table.add_column({'key': 'code', 'title': _("Code")}, [t_inst.institution.code for t_inst in t_institutions])
         table.add_column({'key': 'coach', 'title': _("Coach")}, [{
             'text': (coach := t_inst.coach_set.first()).name,

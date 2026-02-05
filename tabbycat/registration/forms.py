@@ -7,7 +7,7 @@ from participants.emoji import EMOJI_RANDOM_FIELD_CHOICES, pick_unused_emoji
 from participants.models import Adjudicator, Coach, Institution, RegistrationStatus, Speaker, Team, TournamentInstitution
 from privateurls.utils import populate_url_keys
 
-from .form_utils import CustomQuestionsFormMixin
+from .form_utils import CustomQuestionsFormMixin, get_answers_initial
 
 
 class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
@@ -62,8 +62,50 @@ class InstitutionCoachForm(CustomQuestionsFormMixin, forms.ModelForm):
     def save(self):
         obj = super().save()
         populate_url_keys([obj])
-        self.save_answers(obj)
+        self.save_answers(obj, replace_existing=bool(obj.pk))
         return obj
+
+
+class InstitutionEditForm(forms.Form):
+    """Wrapper form for admin editing of institution + primary contact (coach) with separate sections."""
+
+    def __init__(self, tournament, t_inst, data=None, read_only=False, *args, **kwargs):
+        super().__init__(data=data, *args, **kwargs)
+        self.tournament = tournament
+        self.t_inst = t_inst
+        self.read_only = read_only
+        coach = t_inst.coach_set.first()
+
+        inst_initial = {
+            'name': t_inst.institution.name,
+            'code': t_inst.institution.code,
+            **get_answers_initial(t_inst),
+        }
+
+        coach_initial = get_answers_initial(coach) if coach else {}
+
+        self.institution_form = TournamentInstitutionForm(
+            tournament,
+            instance=t_inst,
+            initial=inst_initial,
+            data=data,
+            prefix='institution',
+        )
+        self.coach_form = InstitutionCoachForm(
+            tournament,
+            instance=coach,
+            initial=coach_initial,
+            data=data,
+            prefix='coach',
+        )
+
+        if read_only:
+            for form in (self.institution_form, self.coach_form):
+                for field in form.fields.values():
+                    field.disabled = True
+
+    def is_valid(self):
+        return self.institution_form.is_valid() and self.coach_form.is_valid()
 
 
 class TeamForm(CustomQuestionsFormMixin, forms.ModelForm):

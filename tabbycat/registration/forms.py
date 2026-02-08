@@ -17,12 +17,15 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
 
     name = forms.CharField(max_length=institution_name.max_length, label=_("Institution name"), help_text=institution_name.help_text)
     code = forms.CharField(max_length=institution_code.max_length, label=_("Institution abbreviation"), help_text=institution_code.help_text)
+    key = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     field_order = ('name', 'code', 'teams_requested', 'adjudicators_requested')
 
-    def __init__(self, tournament, *args, **kwargs):
+    def __init__(self, tournament, *args, key=None, **kwargs):
         self.tournament = tournament
         super().__init__(*args, **kwargs)
+        if key:
+            self.fields['key'].initial = key
         self.add_question_fields()
 
         if not self.tournament.pref('reg_institution_slots'):
@@ -34,6 +37,7 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
         exclude = ('tournament', 'institution', 'teams_allocated', 'adjudicators_allocated')
 
     def save(self):
+        self.cleaned_data.pop('key', None)
         inst, created = Institution.objects.get_or_create(name=self.cleaned_data.pop('name'), code=self.cleaned_data.pop('code'))
 
         obj = super().save(commit=False)
@@ -46,10 +50,13 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
 
 
 class InstitutionCoachForm(CustomQuestionsFormMixin, forms.ModelForm):
+    key = forms.CharField(widget=forms.HiddenInput(), required=False)
 
-    def __init__(self, tournament, *args, **kwargs):
+    def __init__(self, tournament, *args, key=None, **kwargs):
         self.tournament = tournament
         super().__init__(*args, **kwargs)
+        if key:
+            self.fields['key'].initial = key
         self.add_question_fields()
 
     class Meta:
@@ -60,6 +67,7 @@ class InstitutionCoachForm(CustomQuestionsFormMixin, forms.ModelForm):
         }
 
     def save(self):
+        self.cleaned_data.pop('key', None)
         obj = super().save()
         populate_url_keys([obj])
         self.save_answers(obj)

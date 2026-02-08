@@ -15,7 +15,7 @@ from formtools.wizard.views import SessionWizardView
 from actionlog.mixins import LogActionMixin
 from actionlog.models import ActionLogEntry
 from participants.emoji import EMOJI_NAMES
-from participants.models import Adjudicator, Coach, RegistrationStatus, Speaker, Team, TournamentInstitution
+from participants.models import Adjudicator, Coach, Institution, RegistrationStatus, Speaker, Team, TournamentInstitution
 from tournaments.mixins import PublicTournamentPageMixin, TournamentMixin
 from users.permissions import Permission
 from utils.misc import reverse_tournament
@@ -76,6 +76,30 @@ class CreateInstitutionFormView(LogActionMixin, PublicTournamentPageMixin, Custo
     action_log_type = ActionLogEntry.ActionType.INSTITUTION_REGISTER
     action_log_content_object_attr = 'object'
 
+    @property
+    def key(self):
+        return (
+            self.request.GET.get('key') or self.request.POST.get('key') or
+            self.request.POST.get('institution-key') or self.request.POST.get('coach-key')
+        )
+
+    def is_page_enabled(self, tournament):
+        if self.key:
+            return (
+                Invitation.objects.filter(
+                    tournament=tournament,
+                    for_content_type=ContentType.objects.get_for_model(Institution),
+                    url_key=self.key,
+                ).exists()
+            )
+        return super().is_page_enabled(tournament)
+
+    def get_form_kwargs(self, step=None):
+        kwargs = super().get_form_kwargs(step)
+        if self.key:
+            kwargs['key'] = self.key
+        return kwargs
+
     def get_success_url(self, coach):
         return reverse_tournament('reg-inst-landing', self.tournament, kwargs={'url_key': coach.url_key})
 
@@ -93,6 +117,13 @@ class CreateInstitutionFormView(LogActionMixin, PublicTournamentPageMixin, Custo
         ]
         populate_invitation_url_keys(invitations, self.tournament)
         Invitation.objects.bulk_create(invitations)
+
+        if self.key:
+            Invitation.objects.filter(
+                tournament=self.tournament,
+                for_content_type=ContentType.objects.get_for_model(Institution),
+                url_key=self.key,
+            ).delete()
 
         messages.success(self.request, _("Your institution %s has been registered!") % t_inst.institution.name)
         self.log_action()

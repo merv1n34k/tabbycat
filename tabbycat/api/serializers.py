@@ -1171,6 +1171,9 @@ class RoundPairingSerializer(serializers.ModelSerializer):
         ballots = fields.RoundHyperlinkedIdentityField(
             view_name='api-ballot-list',
             lookup_field='pk', lookup_url_kwarg='debate_pk')
+        checkin = fields.RoundHyperlinkedIdentityField(
+            view_name='api-debate-checkin',
+            lookup_field='pk', lookup_url_kwarg='debate_pk')
 
     url = fields.RoundHyperlinkedIdentityField(view_name='api-pairing-detail', lookup_url_kwarg='debate_pk')
     venue = fields.TournamentHyperlinkedRelatedField(view_name='api-venue-detail', queryset=Venue.objects.all(),

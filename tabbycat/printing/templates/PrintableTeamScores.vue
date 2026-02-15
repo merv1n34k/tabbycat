@@ -49,7 +49,7 @@ const titleCasePosition = computed(() => {
   <div class="db-flex-column db-bordered db-flex-item-half">
     <div class="db-flex-item-2 db-flex-row db-bottom-border">
       <div class="db-padding-horizontal flex-grow-1 db-align-vertical-center">
-        <strong>{{ tct('%s, %s', [titleCasePosition, teamName]) }}</strong>
+        <strong v-html="tct('%s, %s', [titleCasePosition, teamName])"></strong>
       </div>
       <div
         v-if="team.iron"

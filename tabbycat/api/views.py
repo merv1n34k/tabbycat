@@ -669,11 +669,15 @@ class BaseCheckinsView(AdministratorAPIMixin, TournamentAPIMixin, APIView):
         })
         return checkin
 
+    def get_object_kwargs(self, obj):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        return {lookup_url_kwarg: obj.pk}
+
     def get_response_dict(self, request, obj, checked, event, **kwargs):
         return {
             'object': reverse(
                 self.object_api_view,
-                kwargs={'tournament_slug': self.tournament.slug, 'pk': obj.pk},
+                kwargs={'tournament_slug': self.tournament.slug, **self.get_object_kwargs(obj)},
                 request=request,
                 format=kwargs.get('format'),
             ),
@@ -792,6 +796,30 @@ class VenueCheckinsView(BaseCheckinsView):
     create_permission = Permission.EDIT_ROOM_CHECKIN
     update_permission = Permission.EDIT_ROOM_CHECKIN
     destroy_permission = Permission.EDIT_ROOM_CHECKIN
+
+
+@extend_schema(tags=['debates'])
+@extend_schema_view(
+    get=extend_schema(summary="Get debate checkin status"),
+    delete=extend_schema(summary="Check out debate"),
+    put=extend_schema(summary="Check in debate"),
+    patch=extend_schema(summary="Toggle debate checkin status"),
+    post=extend_schema(summary="Create debate checkin identifier"),
+)
+class DebateCheckinsView(BaseCheckinsView):
+    model = Debate
+    object_api_view = 'api-pairing-detail'
+    window_preference_pref = False
+    tournament_field = 'round__tournament'
+    lookup_url_kwarg = 'debate_pk'
+    lookup_field = 'pk'
+
+    create_permission = Permission.EDIT_DEBATE_CHECKIN
+    update_permission = Permission.EDIT_DEBATE_CHECKIN
+    destroy_permission = Permission.EDIT_DEBATE_CHECKIN
+
+    def get_object_kwargs(self, obj):
+        return {'debate_pk': obj.pk, 'round_seq': obj.round.seq}
 
 
 def get_metrics_params(generator):

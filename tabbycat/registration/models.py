@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -45,6 +46,13 @@ class Answer(models.Model):
         constraints = [
             UniqueConstraint(fields=['question', 'content_type', 'object_id']),
         ]
+
+    def deserialize_answer(self):
+        if self.question.answer_type == self.question.AnswerType.MULTIPLE_SELECT:
+            return json.loads(self.answer)
+        if self.question.answer_type == self.question.AnswerType.DATETIME:
+            return datetime.fromisoformat(self.answer)
+        return self.question.ANSWER_TYPE_TYPES[self.question.answer_type](self.answer)
 
 
 class Question(models.Model):

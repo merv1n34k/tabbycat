@@ -117,6 +117,9 @@ urlpatterns = [
                                         views.BallotViewSet.as_view(detail_methods),
                                         name='api-ballot-detail'),
                                 ])),
+                                path('/checkin',
+                                    views.DebateCheckinsView.as_view(),
+                                    name='api-debate-checkin'),
                             ])),
                         ])),
 

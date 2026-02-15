@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.forms import SimpleArrayField
 from django.db.models import Count, Max, Prefetch, Sum
 from django.db.models.functions import Coalesce
-from django.forms import HiddenInput, modelformset_factory
+from django.forms import HiddenInput, modelformset_factory, Textarea
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _, gettext_lazy, ngettext
@@ -839,6 +839,7 @@ class CustomQuestionFormsetView(TournamentMixin, AdministratorMixin, ModelFormSe
         'widgets': {
             'tournament': HiddenInput,
             'for_content_type': HiddenInput,
+            'help_text': Textarea(attrs={'rows': 3}),
         },
         'extra': 3,
     }

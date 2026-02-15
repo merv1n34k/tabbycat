@@ -151,6 +151,14 @@
     {% endif %}
   </div>
 
+  {% if pref.reg_institution_slots and pref.reg_institution_slot_transfers %}
+    <div class="card mb-3 panel-default">
+      {% tournamenturl 'reg-inst-transfer-slots' url_key as url %}
+      {% blocktrans trimmed asvar text %}Transfer slots to another institution{% endblocktrans %}
+      {% include "components/item-action.html" with icon="arrow-right-left" %}
+    </div>
+  {% endif %}
+
   {% if False %}
     <div class="list-group">
       {% tournamenturl 'reg-inst-create-team' url_key as url %}

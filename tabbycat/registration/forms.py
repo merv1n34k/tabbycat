@@ -8,6 +8,7 @@ from participants.models import Adjudicator, Coach, Institution, Region, Registr
 from privateurls.utils import populate_url_keys
 
 from .form_utils import CustomQuestionsFormMixin, get_answers_initial
+from .models import SlotTransferRequest
 
 
 class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
@@ -27,16 +28,19 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
 
     field_order = ('name', 'code', 'teams_requested', 'adjudicators_requested')
 
-    def __init__(self, tournament, *args, key=None, **kwargs):
+    def __init__(self, tournament, *args, key=None, invitation=None, **kwargs):
         self.tournament = tournament
+        self.invitation = invitation
         super().__init__(*args, **kwargs)
         if key:
             self.fields['key'].initial = key
         self.add_question_fields()
 
-        if not self.tournament.pref('reg_institution_slots'):
-            self.fields.pop('teams_requested')
-            self.fields.pop('adjudicators_requested')
+        if not self.tournament.pref('reg_institution_slots') or invitation:
+            self.fields.pop('teams_requested', None)
+            self.fields.pop('adjudicators_requested', None)
+        if invitation:
+            self.initial.setdefault('name', invitation.institution_name or '')
 
         if 'region' not in self.tournament.pref('reg_institution_fields'):
             self.fields.pop('region')
@@ -56,6 +60,9 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
         obj = super().save(commit=False)
         obj.institution = inst
         obj.tournament = self.tournament
+        if self.invitation:
+            obj.teams_allocated = self.invitation.teams_allocated or 0
+            obj.adjudicators_allocated = self.invitation.adjudicators_allocated or 0
         obj.save()
         self.save_answers(obj)
 
@@ -331,3 +338,87 @@ class ParticipantAllocationForm(forms.Form):
             t_inst.teams_allocated = self.cleaned_data[self._fieldname_teams_allocated(institution)]
             t_inst.adjudicators_allocated = self.cleaned_data[self._fieldname_adjs_allocated(institution)]
         TournamentInstitution.objects.bulk_update(qs, ['teams_allocated', 'adjudicators_allocated'])
+
+
+class SlotTransferRequestForm(forms.Form):
+    receiving_institution = forms.ModelChoiceField(
+        queryset=TournamentInstitution.objects.none(),
+        label=_("Institution"),
+        required=False,
+        empty_label=_("Institution not listed"),
+    )
+    receiving_institution_name = forms.CharField(
+        max_length=100,
+        label=_("Institution name"),
+        required=False,
+        help_text=_("If the institution is not listed above, enter the name of the receiving institution here."),
+    )
+    receiving_institution_email = forms.EmailField(
+        label=_("Contact email"),
+        required=False,
+        help_text=_("If the institution is not listed above, enter the contact email for the receiving institution here."),
+    )
+    teams_to_transfer = forms.IntegerField(
+        min_value=0,
+        initial=0,
+        label=_("Team slots to transfer"),
+    )
+    adjudicators_to_transfer = forms.IntegerField(
+        min_value=0,
+        initial=0,
+        label=_("Adjudicator slots to transfer"),
+    )
+
+    def __init__(self, source_tournament_institution, *args, **kwargs):
+        self.source_tournament_institution = source_tournament_institution
+        self.tournament = source_tournament_institution.tournament
+        super().__init__(*args, **kwargs)
+        other_tis = TournamentInstitution.objects.filter(
+            tournament=self.tournament,
+        ).exclude(
+            pk=source_tournament_institution.pk,
+        ).select_related('institution').order_by('institution__name')
+        self.fields['receiving_institution'].queryset = other_tis
+
+        self.fields['teams_to_transfer'].widget.attrs.update({'max': source_tournament_institution.teams_allocated})
+        self.fields['adjudicators_to_transfer'].widget.attrs.update({'max': source_tournament_institution.adjudicators_allocated})
+
+    def clean(self):
+        data = super().clean()
+        if not data.get('receiving_institution'):
+            if not (data.get('receiving_institution_name') or '').strip():
+                self.add_error('receiving_institution_name', _("Please enter the name of the receiving institution."))
+            if not (data.get('receiving_institution_email') or '').strip():
+                self.add_error('receiving_institution_email', _("Please enter the contact email for the receiving institution."))
+
+        teams = data['teams_to_transfer']
+        adjs = data['adjudicators_to_transfer']
+        if teams <= 0 and adjs <= 0:
+            self.add_error('teams_to_transfer', _("Transfer at least one team or adjudicator slot."))
+        if teams > self.source_tournament_institution.teams_allocated:
+            self.add_error('teams_to_transfer', _("You cannot transfer more team slots than you have."))
+        if adjs > self.source_tournament_institution.adjudicators_allocated:
+            self.add_error('adjudicators_to_transfer', _("You cannot transfer more adjudicator slots than you have."))
+        return data
+
+    def save(self):
+        data = self.cleaned_data
+        if data['receiving_institution']:
+            return SlotTransferRequest.objects.create(
+                tournament=self.tournament,
+                source_tournament_institution=self.source_tournament_institution,
+                teams_transferred=data['teams_to_transfer'],
+                adjudicators_transferred=data['adjudicators_to_transfer'],
+                receiving_institution=data['receiving_institution'],
+                status=SlotTransferRequest.Status.PENDING,
+            )
+        else:
+            SlotTransferRequest.objects.create(
+                tournament=self.tournament,
+                source_tournament_institution=self.source_tournament_institution,
+                teams_transferred=data['teams_to_transfer'],
+                adjudicators_transferred=data['adjudicators_to_transfer'],
+                receiving_institution_name=data['receiving_institution_name'],
+                receiving_institution_email=data['receiving_institution_email'],
+                status=SlotTransferRequest.Status.PENDING,
+            )

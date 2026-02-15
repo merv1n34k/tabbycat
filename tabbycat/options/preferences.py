@@ -1701,6 +1701,15 @@ class ParticipantSlots(BooleanPreference):
 
 
 @tournament_preferences_registry.register
+class InstitutionSlotTransfers(BooleanPreference):
+    help_text = _("Allow institutions to request transferring team or adjudicator slots to another institution (when participant slots are in use).")
+    verbose_name = _("Enable institution slot transfers")
+    section = registration
+    name = 'reg_institution_slot_transfers'
+    default = False
+
+
+@tournament_preferences_registry.register
 class EnableOpenTeamRegistration(BooleanPreference):
     help_text = _("Allow teams to register independently to an institution")
     verbose_name = _("Enable open team registration")

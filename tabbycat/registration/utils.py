@@ -9,7 +9,7 @@ from participants.models import RegistrationStatus
 from tournaments.models import Tournament
 from utils.misc import generate_identifier_string, reverse_tournament
 
-from .models import Invitation
+from .models import Invitation, SlotTransferRequest
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -55,3 +55,27 @@ def add_confirm_button_column(table: 'TabbycatTableBuilder', instances: list, ur
         else:
             confirm_buttons.append({'icon': 'check', 'sort': 1, 'class': 'text-success'})
     table.add_column({'key': 'confirm', 'title': _("Confirm")}, confirm_buttons)
+
+
+slot_transfer_approve_html = """
+<form method="POST" action="{}" style="display: inline;">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{}"/>
+    <input type="hidden" name="action" value="approve"/>
+    <button type="submit" class="btn btn-sm btn-success">{}</button>
+</form>"""
+
+
+def add_slot_transfer_status_column(table: 'TabbycatTableBuilder', transfers: list, request: 'HttpRequest') -> None:
+    """Add a Status column: Approve button for PENDING, otherwise status text."""
+    csrf_token = get_token(request)
+    status_cells = []
+    for transfer in transfers:
+        if transfer.status == SlotTransferRequest.Status.PENDING:
+            url = reverse_tournament('reg-slot-transfer-update', table.tournament, kwargs={'pk': transfer.pk})
+            status_cells.append({
+                'text': format_html(slot_transfer_approve_html, url, csrf_token, _("Approve")),
+                'sort': 0,
+            })
+        else:
+            status_cells.append({'text': transfer.get_status_display(), 'sort': 1})
+    table.add_column({'key': 'status', 'title': _("Status")}, status_cells)

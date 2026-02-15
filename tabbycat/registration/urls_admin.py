@@ -9,6 +9,11 @@ urlpatterns = [
     path('institutions/', include([
         path('', views.InstitutionRegistrationTableView.as_view(), name='reg-institution-list'),
         path('<int:pk>/edit/', views.AdminEditInstitutionFormView.as_view(), name='reg-institution-edit'),
+        path('slot-transfers/', include([
+            path('', views.SlotTransferApprovalView.as_view(), name='reg-slot-transfer-approval'),
+            path('summary/', views.SlotTransferSummaryView.as_view(), name='reg-slot-transfer-summary'),
+            path('<int:pk>/', views.UpdateSlotTransferView.as_view(), name='reg-slot-transfer-update'),
+        ])),
         path('questions/',
             views.CustomQuestionFormsetView.as_view(question_model=TournamentInstitution, success_url='reg-institution-list'),
             name='reg-institution-questions'),

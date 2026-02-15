@@ -4,11 +4,12 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Count, Max, Prefetch, Sum
+from django.db.models import Count, F, Max, Prefetch, Sum
 from django.db.models.functions import Coalesce
 from django.forms import HiddenInput, modelformset_factory, Textarea
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _, gettext_lazy, ngettext
 from django.views.generic.edit import FormView
 from formtools.wizard.views import SessionWizardView
@@ -38,12 +39,13 @@ from .forms import (
     InstitutionCoachForm,
     InstitutionEditForm,
     ParticipantAllocationForm,
+    SlotTransferRequestForm,
     SpeakerForm,
     TeamForm,
     TournamentInstitutionForm,
 )
-from .models import Invitation, Question
-from .utils import add_confirm_button_column, populate_invitation_url_keys
+from .models import Invitation, Question, SlotTransferRequest
+from .utils import add_confirm_button_column, add_slot_transfer_status_column, populate_invitation_url_keys
 
 
 class CustomQuestionFormMixin:
@@ -672,6 +674,38 @@ class CoachViewResponseFormView(PublicTournamentPageMixin, InstitutionalRegistra
         return HttpResponse(status=403)
 
 
+class SlotTransferRequestFormView(PublicTournamentPageMixin, InstitutionalRegistrationMixin, FormView):
+    form_class = SlotTransferRequestForm
+    template_name = 'slot_transfer_request_form.html'
+    page_emoji = '↔'
+    page_title = gettext_lazy("Transfer slots")
+
+    def is_page_enabled(self, tournament):
+        return tournament.pref('reg_institution_slots') and tournament.pref('reg_institution_slot_transfers')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        source_ti = TournamentInstitution.objects.get(
+            tournament=self.tournament,
+            institution=self.institution,
+        )
+        kwargs['source_tournament_institution'] = source_ti
+        kwargs.pop('institution')
+        return kwargs
+
+    def get_success_url(self):
+        return reverse_tournament('reg-inst-landing', self.tournament, kwargs={'url_key': self.kwargs['url_key']})
+
+    def get_context_data(self, **kwargs):
+        kwargs['url_key'] = self.kwargs['url_key']
+        return super().get_context_data(**kwargs)
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, _("Your slot transfer request has been submitted and is pending approval."))
+        return super().form_valid(form)
+
+
 class InstitutionalCreateTeamFormView(InstitutionalRegistrationMixin, BaseCreateTeamFormView):
 
     public_page_preference = 'institution_participant_registration'
@@ -968,3 +1002,124 @@ class ConfirmAdjudicatorRegistrationView(BaseConfirmRegistrationView):
     model = Adjudicator
     name_field = 'name'
     tournament_redirect_pattern_name = 'reg-adjudicator-list'
+
+
+class SlotTransferApprovalView(TournamentMixin, AdministratorMixin, VueTableTemplateView):
+    page_emoji = '↔'
+    page_title = gettext_lazy("Slot transfer requests")
+
+    view_permission = Permission.VIEW_REGISTRATION
+
+    def get_table(self):
+        transfers = SlotTransferRequest.objects.filter(
+            tournament=self.tournament,
+        ).select_related(
+            'source_tournament_institution__institution',
+            'receiving_institution__institution',
+        ).order_by('-created_at')
+
+        def receiving_inst_cell(transfer):
+            if transfer.receiving_institution_id is None:
+                return {'text': transfer.receiving_institution_name, 'link': 'mailto:' + transfer.receiving_institution_email if transfer.receiving_institution_email else None}
+            return {'text': transfer.receiving_institution.institution.name}
+
+        table = TabbycatTableBuilder(view=self, title=_('Slot transfer requests'))
+        table.add_column({'key': 'source_institution', 'title': _("From")}, [t.source_tournament_institution.institution.name for t in transfers])
+        table.add_column({'key': 'receiving_institution', 'title': _("To")}, [receiving_inst_cell(t) for t in transfers])
+        table.add_column({'key': 'teams_transferred', 'title': _("Teams")}, [t.teams_transferred for t in transfers])
+        table.add_column({'key': 'adjudicators_transferred', 'title': _("Adjudicators")}, [t.adjudicators_transferred for t in transfers])
+        add_slot_transfer_status_column(table, list(transfers), self.request)
+        return table
+
+
+class UpdateSlotTransferView(TournamentMixin, AdministratorMixin, PostOnlyRedirectView):
+    view_permission = Permission.VIEW_REGISTRATION
+
+    def get_object(self):
+        return get_object_or_404(SlotTransferRequest, tournament=self.tournament, pk=self.kwargs['pk'])
+
+    def post(self, request, *args, **kwargs):
+        transfer = self.get_object()
+        action = request.POST.get('action')
+        if action == 'reject':
+            transfer.status = SlotTransferRequest.Status.REJECTED
+            transfer.save()
+            messages.success(request, _("Transfer request rejected."))
+            return HttpResponseRedirect(self.get_success_url())
+
+        if action != 'approve' or transfer.status != SlotTransferRequest.Status.PENDING:
+            messages.error(request, _("Invalid request or transfer is no longer pending."))
+            return HttpResponseRedirect(self.get_success_url())
+
+        # Approve
+        TournamentInstitution.objects.filter(id=transfer.source_tournament_institution_id).update(
+            teams_allocated=F('teams_allocated') - transfer.teams_transferred,
+            adjudicators_allocated=F('adjudicators_allocated') - transfer.adjudicators_transferred,
+        )
+
+        invitation = None
+        if transfer.receiving_institution_id:
+            TournamentInstitution.objects.filter(id=transfer.receiving_institution_id).update(
+                teams_allocated=F('teams_allocated') + transfer.teams_transferred,
+                adjudicators_allocated=F('adjudicators_allocated') + transfer.adjudicators_transferred,
+            )
+        else:
+            invitation = Invitation(
+                tournament=self.tournament,
+                for_content_type=ContentType.objects.get_for_model(Institution),
+                slot_transfer_request=transfer,
+            )
+            populate_invitation_url_keys([invitation], self.tournament)
+            invitation.save()
+
+        transfer.status = SlotTransferRequest.Status.APPROVED
+        transfer.save()
+
+        if invitation:
+            reg_url = self.request.build_absolute_uri(
+                reverse_tournament('reg-create-institution', self.tournament) + '?key=' + invitation.url_key,
+            )
+            messages.success(
+                request,
+                _('Transfer approved. An invitation email has been sent to the provided address. ') + (
+                    mark_safe(_('You can also share this link: <a href="%(url)s" class="alert-link">%(url)s</a>') % {'url': reg_url})
+                ),
+            )
+        else:
+            messages.success(request, _("Transfer approved."))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse_tournament('reg-slot-transfer-approval', self.tournament)
+
+
+class SlotTransferSummaryView(TournamentMixin, AdministratorMixin, VueTableTemplateView):
+    page_emoji = '↔'
+    page_title = gettext_lazy("Slot transfer summary")
+    view_permission = Permission.VIEW_REGISTRATION
+
+    def get_table(self):
+        t_institutions = list(
+            self.tournament.tournamentinstitution_set.select_related('institution').order_by('institution__name'),
+        )
+        approved = SlotTransferRequest.objects.filter(
+            tournament=self.tournament,
+            status=SlotTransferRequest.Status.APPROVED,
+        ).values('receiving_institution_id', 'source_tournament_institution_id', 'teams_transferred', 'adjudicators_transferred')
+        net_new_teams = {}
+        net_new_adjs = {}
+        for t in approved:
+            rid = t['receiving_institution_id']
+            sid = t['source_tournament_institution_id']
+            net_new_teams[rid] = net_new_teams.get(rid, 0) + t['teams_transferred']
+            net_new_adjs[rid] = net_new_adjs.get(rid, 0) + t['adjudicators_transferred']
+            net_new_teams[sid] = net_new_teams.get(sid, 0) - t['teams_transferred']
+            net_new_adjs[sid] = net_new_adjs.get(sid, 0) - t['adjudicators_transferred']
+
+        table = TabbycatTableBuilder(view=self, title=_('Slot transfer summary'))
+        table.add_column({'key': 'institution', 'title': _("Institution name")}, [ti.institution.name for ti in t_institutions])
+        table.add_column({'key': 'teams_allocated', 'title': _("Teams allocated")}, [ti.teams_allocated for ti in t_institutions])
+        table.add_column({'key': 'adjudicators_allocated', 'title': _("Adjudicators allocated")}, [ti.adjudicators_allocated for ti in t_institutions])
+        table.add_column({'key': 'teams_net', 'title': _("Net new teams")}, [net_new_teams.get(ti.id, 0) for ti in t_institutions])
+        table.add_column({'key': 'adjs_net', 'title': _("Net new adjudicators")}, [net_new_adjs.get(ti.id, 0) for ti in t_institutions])
+        return table

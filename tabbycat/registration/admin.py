@@ -1,10 +1,11 @@
 from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.contrib.contenttypes.models import ContentType
+from django.utils.translation import gettext_lazy as _
 
 from utils.admin import ModelAdmin
 
-from .models import Answer, Invitation, Question
+from .models import Answer, Invitation, Question, SlotTransferRequest
 
 
 @admin.register(Answer)
@@ -21,7 +22,22 @@ class QuestionAdmin(ModelAdmin):
 
 @admin.register(Invitation)
 class InvitationAdmin(ModelAdmin):
-    list_display = ('url_key', 'institution', 'team')
+    list_display = ('url_key', 'tournament', 'for_content_type', 'institution')
+
+
+@admin.register(SlotTransferRequest)
+class SlotTransferRequestAdmin(ModelAdmin):
+    list_display = ('id', 'tournament', 'source_institution_name', 'receiving_institution_name', 'teams_transferred', 'adjudicators_transferred')
+    list_filter = ('tournament', 'status')
+    list_select_related = ('source_tournament_institution__institution', 'receiving_institution__institution')
+
+    @admin.display(description=_("Source"))
+    def source_institution_name(self, obj):
+        return obj.source_tournament_institution.institution.name
+
+    @admin.display(description=_("Receiving"))
+    def receiving_institution_name(self, obj):
+        return obj.receiving_institution.institution.name if obj.receiving_institution else obj.receiving_institution_name
 
 
 class AnswerInline(GenericTabularInline):

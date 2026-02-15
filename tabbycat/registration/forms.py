@@ -4,37 +4,54 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from participants.emoji import EMOJI_RANDOM_FIELD_CHOICES, pick_unused_emoji
-from participants.models import Adjudicator, Coach, Institution, RegistrationStatus, Speaker, Team, TournamentInstitution
+from participants.models import Adjudicator, Coach, Institution, Region, RegistrationStatus, Speaker, Team, TournamentInstitution
 from privateurls.utils import populate_url_keys
 
-from .form_utils import CustomQuestionsFormMixin
+from .form_utils import CustomQuestionsFormMixin, get_answers_initial
 
 
 class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
 
     institution_name = Institution._meta.get_field('name')
     institution_code = Institution._meta.get_field('code')
+    institution_region = Institution._meta.get_field('region')
 
     name = forms.CharField(max_length=institution_name.max_length, label=_("Institution name"), help_text=institution_name.help_text)
     code = forms.CharField(max_length=institution_code.max_length, label=_("Institution abbreviation"), help_text=institution_code.help_text)
+    region = forms.ModelChoiceField(
+        queryset=Region.objects.all(),
+        label=institution_region.verbose_name,
+        help_text=institution_region.help_text,
+    )
+    key = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     field_order = ('name', 'code', 'teams_requested', 'adjudicators_requested')
 
-    def __init__(self, tournament, *args, **kwargs):
+    def __init__(self, tournament, *args, key=None, **kwargs):
         self.tournament = tournament
         super().__init__(*args, **kwargs)
+        if key:
+            self.fields['key'].initial = key
         self.add_question_fields()
 
         if not self.tournament.pref('reg_institution_slots'):
             self.fields.pop('teams_requested')
             self.fields.pop('adjudicators_requested')
 
+        if 'region' not in self.tournament.pref('reg_institution_fields'):
+            self.fields.pop('region')
+
     class Meta:
         model = TournamentInstitution
         exclude = ('tournament', 'institution', 'teams_allocated', 'adjudicators_allocated')
 
     def save(self):
-        inst, created = Institution.objects.get_or_create(name=self.cleaned_data.pop('name'), code=self.cleaned_data.pop('code'))
+        self.cleaned_data.pop('key', None)
+        inst, created = Institution.objects.get_or_create(
+            name=self.cleaned_data.pop('name'),
+            code=self.cleaned_data.pop('code'),
+            region=self.cleaned_data.pop('region', None),
+        )
 
         obj = super().save(commit=False)
         obj.institution = inst
@@ -46,10 +63,13 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
 
 
 class InstitutionCoachForm(CustomQuestionsFormMixin, forms.ModelForm):
+    key = forms.CharField(widget=forms.HiddenInput(), required=False)
 
-    def __init__(self, tournament, *args, **kwargs):
+    def __init__(self, tournament, *args, key=None, **kwargs):
         self.tournament = tournament
         super().__init__(*args, **kwargs)
+        if key:
+            self.fields['key'].initial = key
         self.add_question_fields()
 
     class Meta:
@@ -60,10 +80,53 @@ class InstitutionCoachForm(CustomQuestionsFormMixin, forms.ModelForm):
         }
 
     def save(self):
+        self.cleaned_data.pop('key', None)
         obj = super().save()
         populate_url_keys([obj])
-        self.save_answers(obj)
+        self.save_answers(obj, replace_existing=bool(obj.pk))
         return obj
+
+
+class InstitutionEditForm(forms.Form):
+    """Wrapper form for admin editing of institution + primary contact (coach) with separate sections."""
+
+    def __init__(self, tournament, t_inst, data=None, read_only=False, *args, **kwargs):
+        super().__init__(data=data, *args, **kwargs)
+        self.tournament = tournament
+        self.t_inst = t_inst
+        self.read_only = read_only
+        coach = t_inst.coach_set.first()
+
+        inst_initial = {
+            'name': t_inst.institution.name,
+            'code': t_inst.institution.code,
+            **get_answers_initial(t_inst),
+        }
+
+        coach_initial = get_answers_initial(coach) if coach else {}
+
+        self.institution_form = TournamentInstitutionForm(
+            tournament,
+            instance=t_inst,
+            initial=inst_initial,
+            data=data,
+            prefix='institution',
+        )
+        self.coach_form = InstitutionCoachForm(
+            tournament,
+            instance=coach,
+            initial=coach_initial,
+            data=data,
+            prefix='coach',
+        )
+
+        if read_only:
+            for form in (self.institution_form, self.coach_form):
+                for field in form.fields.values():
+                    field.disabled = True
+
+    def is_valid(self):
+        return self.institution_form.is_valid() and self.coach_form.is_valid()
 
 
 class TeamForm(CustomQuestionsFormMixin, forms.ModelForm):

@@ -1,5 +1,6 @@
 <script setup>
 import _ from 'lodash'
+import { mkConfig, generateCsv, download } from 'export-to-csv'
 import { computed, defineAsyncComponent } from 'vue'
 import SmartHeader from './SmartHeader.vue'
 import SmartCell from './SmartCell.vue'
@@ -89,11 +90,15 @@ const getCellDataWithHighlight = (cellData, _cellIndex, rowIndex) => {
 }
 
 const copyTableData = async () => {
-  let tableCSV = props.tableHeaders.map(x => x.key).join('\t') + '\r\n'
-  for (const row of props.tableContent) {
-    tableCSV += row.map(x => x.text ? x.text.replace(/<[^>]*>?/gm, '') : '').join('\t') + '\r\n'
-  }
-  await navigator.clipboard.writeText(tableCSV)
+  const content = props.tableContent.map(row =>
+    row.reduce((acc, cell, index) => {
+      acc[props.tableHeaders[index].key] = (cell.text ? cell.text.replace(/<[^>]*>?/gm, '') : '')
+      return acc
+    }, {}),
+  )
+  const csvConfig = mkConfig({ useKeysAsHeaders: true })
+  const csvData = generateCsv(csvConfig)(content)
+  await navigator.clipboard.writeText(csvData)
 }
 
 defineExpose({ copyTableData })

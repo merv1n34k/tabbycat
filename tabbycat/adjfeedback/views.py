@@ -5,6 +5,7 @@ import math
 
 from django.contrib import messages
 from django.db.models import Count, F, Q
+from django.forms import HiddenInput
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.utils.html import conditional_escape, escape
@@ -856,9 +857,14 @@ class AdjFeedbackQuestionsFormset(CustomQuestionFormsetView):
     formset_model = AdjudicatorFeedbackQuestion
     formset_factory_kwargs = {
         'fields': [
+            'tournament', 'for_content_type',
             'name', 'reference', 'from_adj', 'from_team',
             'text', 'help_text', 'answer_type', 'required', 'min_value', 'max_value', 'choices',
         ],
+        'widgets': {
+            'tournament': HiddenInput,
+            'for_content_type': HiddenInput,
+        },
     }
     question_model = AdjudicatorFeedback
     success_url = 'adjfeedback-overview'

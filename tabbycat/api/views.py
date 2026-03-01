@@ -992,12 +992,12 @@ class AdjudicatorStandingsView(TournamentAPIMixin, TournamentPublicAPIMixin, Lis
             ).exclude(source_adjudicator__type=DebateAdjudicator.TYPE_TRAINEE).values('adjudicator_id').annotate(avg=Avg('score')),
         )
         round_feedback = {
-            (adj, round): score
-            for adj, round, score in AdjudicatorFeedback.objects.filter(
+            (fb['adjudicator_id'], fb['round_id']): fb['avg_score']
+            for fb in AdjudicatorFeedback.objects.filter(
                 adjudicator__in=adjs, confirmed=True, ignored=False,
             ).exclude(source_adjudicator__type=DebateAdjudicator.TYPE_TRAINEE).annotate(
                 round_id=Coalesce("source_adjudicator__debate__round_id", "source_team__debate__round_id"),
-            ).values('adjudicator_id', 'round_id').annotate(avg=Avg('score'))
+            ).values('adjudicator_id', 'round_id').annotate(avg_score=Avg('score'))
         }
         for adj in adjs:
             adj.final_score = adj.base_score * (1 - feedback_weight) + (feedback_weight * feedback_scores.get(adj.pk, 0))

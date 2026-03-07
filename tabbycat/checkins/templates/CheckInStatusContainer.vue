@@ -8,11 +8,9 @@ import { useDjangoI18n } from '../../templates/composables/useDjangoI18n.js'
 
 const props = defineProps({
   initialEvents: Array,
-  assistantUrl: String,
   teamCodes: Boolean,
   tournamentSlug: String,
   forAdmin: Boolean,
-  teamSize: Number,
   speakers: Array,
   adjudicators: Array,
   venues: Array,
@@ -22,6 +20,8 @@ const { gettext, tct } = useDjangoI18n()
 
 const filterByPresence = ref({ All: true, Absent: false, Present: false })
 const events = ref([...(props.initialEvents ?? [])])
+
+const showCodeNames = ref(props.teamCodes)
 
 const peopleFilterByType = ref({ All: true, Adjudicators: false, Debaters: false })
 const peopleSortByGroup = ref({ Institution: !props.teamCodes, Name: props.teamCodes, Time: false })
@@ -54,15 +54,23 @@ const annotatePeople = (list) => {
   })
 }
 
+// Show the toggle only when code names are the current primary display AND the payload
+// includes both fields (i.e. the server confirmed the user has permission to see real names).
+const canToggleNames = computed(() =>
+  (props.speakers ?? []).some(s => s.team_code_name && s.team_real_name),
+)
+
 const annotatedSpeakers = computed(() => {
   const speakers = annotatePeople([...(props.speakers ?? [])])
-  if (props.teamCodes) {
-    return speakers.map((speaker) => ({
-      ...speaker,
-      institution: { code: gettext('Anonymous (due to team codes)'), name: gettext('Anon') },
-    }))
-  }
-  return speakers
+  return speakers.map((speaker) => ({
+    ...speaker,
+    team: showCodeNames.value
+      ? (speaker.team_code_name ?? speaker.team)
+      : (speaker.team_real_name ?? speaker.team),
+    institution: showCodeNames.value
+      ? { code: gettext('Anonymous (due to team codes)'), name: gettext('Anon') }
+      : speaker.institution,
+  }))
 })
 
 const annotatedTeams = computed(() => {
@@ -123,7 +131,7 @@ const peopleByType = computed(() => {
 })
 
 const getToolTipForPerson = (entity) => {
-  if (!props.teamCodes && entity.type !== 'Team') {
+  if (!showCodeNames.value && entity.type !== 'Team') {
     if (entity.institution === null) {
       if (entity.identifier[0]) {
         const subs = [entity.name, entity.type, entity.identifier[0]]
@@ -413,9 +421,16 @@ const setListContext = (metaKey, selectedKey, selectedValue) => {
   })
 }
 
+const setNameDisplay = (useCodeNames) => {
+  showCodeNames.value = useCodeNames
+  if (useCodeNames) {
+    setListContext('sortByGroup', 'Name', true)
+  } else {
+    setListContext('sortByGroup', 'Institution', true)
+  }
+}
+
 const forAdmin = toRef(props, 'forAdmin')
-const assistantUrl = toRef(props, 'assistantUrl')
-const teamSize = toRef(props, 'teamSize')
 </script>
 
 <template>
@@ -472,6 +487,26 @@ const teamSize = toRef(props, 'teamSize')
         </button>
       </div>
 
+      <div
+        v-if="forAdmin && !isForVenues && canToggleNames"
+        class="btn-group mb-md-0 mb-3"
+      >
+        <button
+          type="button"
+          :class="['btn btn-outline-secondary', !showCodeNames ? 'active' : '']"
+          @click="setNameDisplay(false)"
+        >
+          {{ gettext('Real Names') }}
+        </button>
+        <button
+          type="button"
+          :class="['btn btn-outline-secondary', showCodeNames ? 'active' : '']"
+          @click="setNameDisplay(true)"
+        >
+          {{ gettext('Code Names') }}
+        </button>
+      </div>
+
       <div class="btn-group mb-md-0 mb-3">
         <div class="btn btn-outline-primary disabled d-flex align-items-center">
           {{ gettext('Order') }}
@@ -503,13 +538,6 @@ const teamSize = toRef(props, 'teamSize')
     <div class="alert alert-info">
       {{ gettext('This page will live-update with new check-ins as they occur although the initial list may be up to a minute old.') }}
     </div>
-
-    <template v-if="assistantUrl">
-      <a
-        :href="assistantUrl"
-        target="_blank"
-      >{{ gettext('Open the assistant version.') }}</a>
-    </template>
 
     <div
       v-for="(entities, grouper) in entitiesBySortingSetting"

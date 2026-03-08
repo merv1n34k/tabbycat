@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-3">
+  <div class="mt-3" :style="{ paddingBottom: isDirty ? '90px' : '0' }">
     <!-- Status bar -->
     <div v-if="saveStatus" class="alert" :class="saveStatusClass" role="alert">
       {{ saveStatus }}
@@ -17,43 +17,52 @@
         :key="team.id"
         class="col-lg-3 col-md-4 col-sm-6 mb-3"
       >
+        <!-- Team as a droppable zone (uses global .vue-droppable styles) -->
         <div
-          class="card h-100"
+          class="vue-droppable h-100 border rounded"
           :class="{
-            'border-warning': hasConflict(team),
-            'border-primary': dragOverTeam === team.id
+            'vue-droppable-enter': dragOverTeam === team.id,
+            'border-warning': hasConflict(team) && dragOverTeam !== team.id,
           }"
-          @dragover.prevent="onDragOver(team)"
+          @dragover.prevent
+          @drop.prevent.stop="onDrop($event, team)"
+          @dragenter="onDragEnter($event, team)"
           @dragleave="onDragLeave"
-          @drop="onDrop($event, team)"
         >
-          <div class="card-header py-2">
+          <!-- Team header -->
+          <div class="border-bottom p-2 bg-white d-flex justify-content-between align-items-center">
             <strong>{{ team.name }}</strong>
+            <span class="badge badge-secondary">{{ team.speakers.length }}</span>
           </div>
-          <ul class="list-group list-group-flush">
-            <li
+
+          <!-- Speaker items using allocation .vue-draggable pattern -->
+          <div class="p-1">
+            <div
               v-for="speaker in team.speakers"
               :key="speaker.id"
-              class="list-group-item py-2 px-3 d-flex justify-content-between align-items-center speaker-item"
-              :class="{'dragging': isDragging(speaker)}"
+              class="vue-draggable d-flex m-1 align-items-center align-self-center"
+              :class="{ 'vue-draggable-dragging': isDragging(speaker) }"
               draggable="true"
               @dragstart="onDragStart($event, speaker, team)"
               @dragend="onDragEnd"
             >
-              <span>{{ speaker.name }}</span>
-              <span
-                v-if="getPairCount(speaker, team)"
-                class="badge badge-warning badge-pill"
-                :title="'Previously paired ' + getPairCount(speaker, team) + ' time(s) with current teammate'"
-              >
-                {{ getPairCount(speaker, team) }}x paired
-              </span>
-            </li>
-          </ul>
+              <div class="py-1 pl-2 pr-2 d-flex flex-column flex-truncate flex-fill">
+                <h5 class="mb-0 vc-title text-truncate">{{ speaker.name }}</h5>
+                <h6
+                  v-if="getPairCount(speaker, team) >= 2"
+                  class="mb-0 vue-draggable-muted vc-subtitle text-truncate"
+                >
+                  {{ getPairCount(speaker, team) }}x paired together
+                </h6>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drop hint visible while dragging -->
           <div
             v-if="draggedSpeaker && draggedFromTeam && draggedFromTeam.id !== team.id"
-            class="card-footer text-center py-2 drop-hint"
-            :class="{'drop-hint-active': dragOverTeam === team.id}"
+            class="text-center py-2 small border-top"
+            :class="dragOverTeam === team.id ? 'text-white' : 'text-muted'"
           >
             Drop here
           </div>
@@ -61,8 +70,8 @@
       </div>
     </div>
 
-    <!-- Save button (sticky at bottom) -->
-    <div v-if="isDirty" class="fixed-bottom bg-white border-top p-3 text-right shadow-sm">
+    <!-- Save button bar (fixed at bottom) -->
+    <div v-if="isDirty" class="fixed-bottom bg-white border-top p-3 text-right shadow-sm" style="z-index: 1030;">
       <button class="btn btn-success btn-lg" @click="saveAssignments">
         Save Changes
       </button>
@@ -104,6 +113,7 @@ export default {
       draggedSpeaker: null,
       draggedFromTeam: null,
       dragOverTeam: null,
+      dragCounter: 0,
       isDirty: false,
       saveStatus: null,
       saveStatusClass: 'alert-info',
@@ -117,23 +127,33 @@ export default {
       this.draggedSpeaker = speaker
       this.draggedFromTeam = team
       event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setData('text/plain', speaker.id)
+      event.dataTransfer.setData('text/plain', JSON.stringify({
+        speakerId: speaker.id,
+        fromTeamId: team.id,
+      }))
     },
     onDragEnd() {
       this.draggedSpeaker = null
       this.draggedFromTeam = null
       this.dragOverTeam = null
+      this.dragCounter = 0
     },
-    onDragOver(team) {
+    onDragEnter(event, team) {
       if (this.draggedFromTeam && this.draggedFromTeam.id !== team.id) {
+        this.dragCounter += 1
         this.dragOverTeam = team.id
       }
     },
     onDragLeave() {
-      this.dragOverTeam = null
+      this.dragCounter -= 1
+      if (this.dragCounter <= 0) {
+        this.dragOverTeam = null
+        this.dragCounter = 0
+      }
     },
     onDrop(event, targetTeam) {
       this.dragOverTeam = null
+      this.dragCounter = 0
       if (!this.draggedSpeaker || !this.draggedFromTeam) return
       if (this.draggedFromTeam.id === targetTeam.id) return
 
@@ -161,7 +181,7 @@ export default {
       for (let i = 0; i < speakers.length; i++) {
         for (let j = i + 1; j < speakers.length; j++) {
           const key = `${Math.min(speakers[i].id, speakers[j].id)}-${Math.max(speakers[i].id, speakers[j].id)}`
-          if (this.pairHistory[key]) return true
+          if ((this.pairHistory[key] || 0) >= 2) return true
         }
       }
       return false
@@ -214,27 +234,3 @@ export default {
   },
 }
 </script>
-
-<style scoped>
-.speaker-item {
-  cursor: grab;
-  transition: background-color 0.15s, opacity 0.15s;
-}
-.speaker-item:hover {
-  background-color: #f0f0f0;
-}
-.speaker-item.dragging {
-  opacity: 0.4;
-  background-color: #cce5ff;
-}
-.drop-hint {
-  color: #6c757d;
-  border-top: 2px dashed #dee2e6;
-  font-size: 0.85em;
-}
-.drop-hint-active {
-  color: #007bff;
-  border-top-color: #007bff;
-  background-color: #e7f3ff;
-}
-</style>

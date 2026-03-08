@@ -29,11 +29,15 @@
 {% endblock %}
 
 {% block page-subnav-actions %}
-  {% if has_shuffle_log %}
+  {% if draw_exists %}
+    <a class="btn btn-outline-success" href="{% roundurl 'draw' round %}">
+      {% trans "View Draw" %} <i data-feather="chevron-right"></i>
+    </a>
+  {% elif has_shuffle_log %}
     <form id="createForm" action="{% roundurl 'draw-create' %}" method="POST">
       {% csrf_token %}
       <button class="btn btn-success" id="createDraw">
-        {% trans "Create Draw from Shuffle" %} <i data-feather="chevron-right"></i>
+        {% trans "Generate Draw" %} <i data-feather="chevron-right"></i>
       </button>
     </form>
   {% endif %}

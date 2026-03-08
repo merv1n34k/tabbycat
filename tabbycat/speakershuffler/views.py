@@ -65,6 +65,7 @@ class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
 
         from utils.misc import reverse_round
         context['save_url'] = reverse_round('speaker-shuffle-save', self.round)
+        context['draw_exists'] = self.round.draw_status != self.round.Status.NONE
 
         return context
 

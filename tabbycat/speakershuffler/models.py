@@ -65,3 +65,41 @@ class ShuffleLog(models.Model):
 
     def __str__(self):
         return f"Shuffle for {self.round} at {self.timestamp}"
+
+
+class SpeakerConflict(models.Model):
+    """Personal conflict between two speakers — they should not be paired.
+    Canonical ordering: speaker1.pk < speaker2.pk."""
+
+    tournament = models.ForeignKey(
+        'tournaments.Tournament', models.CASCADE,
+        verbose_name=_("tournament"),
+    )
+    speaker1 = models.ForeignKey(
+        'participants.Speaker', models.CASCADE,
+        related_name='conflict_as_first',
+        verbose_name=_("speaker 1"),
+    )
+    speaker2 = models.ForeignKey(
+        'participants.Speaker', models.CASCADE,
+        related_name='conflict_as_second',
+        verbose_name=_("speaker 2"),
+    )
+
+    class Meta:
+        verbose_name = _("speaker conflict")
+        verbose_name_plural = _("speaker conflicts")
+        constraints = [
+            models.UniqueConstraint(
+                fields=['speaker1', 'speaker2'],
+                name='unique_speaker_conflict',
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.speaker1_id and self.speaker2_id and self.speaker1_id > self.speaker2_id:
+            self.speaker1_id, self.speaker2_id = self.speaker2_id, self.speaker1_id
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.speaker1} conflicts with {self.speaker2}"

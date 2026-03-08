@@ -28,17 +28,50 @@
   {% endif %}
 {% endblock %}
 
+{% block page-subnav-actions %}
+  {% if has_shuffle_log %}
+    <form id="createForm" action="{% roundurl 'draw-create' %}" method="POST">
+      {% csrf_token %}
+      <button class="btn btn-success" id="createDraw">
+        {% trans "Create Draw from Shuffle" %} <i data-feather="chevron-right"></i>
+      </button>
+    </form>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
-<div id="vueMount">
-  <edit-speaker-shuffle-container
-    :initial-teams='{{ shuffle_data_json|safe }}'
-    :pair-history='{{ pair_history_json|safe }}'
-    save-url="{% roundurl 'speaker-shuffle-save' %}"
-    csrf-token="{{ csrf_token }}"
-  ></edit-speaker-shuffle-container>
-</div>
+
+  {% if not has_shuffle_log and teams_count > 0 %}
+    <div class="alert alert-info">
+      <i data-feather="info"></i>
+      {% trans "Speakers have not been shuffled yet for this round. Click \"Shuffle Speakers\" above to auto-assign speakers to new teams." %}
+    </div>
+  {% endif %}
+
+  {% if teams_count == 0 %}
+    <div class="alert alert-warning">
+      <i data-feather="alert-triangle"></i>
+      {% trans "No teams are available for this round. Please set team availability first." %}
+    </div>
+  {% endif %}
+
+  <div id="vueMount">
+    <edit-speaker-shuffle-container
+      :initial-teams="initialTeams"
+      :pair-history="pairHistory"
+      :save-url="saveUrl"
+    ></edit-speaker-shuffle-container>
+  </div>
+
 {% endblock content %}
 
 {% block js %}
+  <script>
+    window.vueData = {
+      initialTeams: {{ shuffle_data_json|safe }},
+      pairHistory: {{ pair_history_json|safe }},
+      saveUrl: "{{ save_url }}",
+    }
+  </script>
   {{ block.super }}
 {% endblock js %}

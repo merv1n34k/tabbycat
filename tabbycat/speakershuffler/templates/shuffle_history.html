@@ -11,39 +11,36 @@
 {% endblock %}
 
 {% block content %}
-<div class="card mt-3">
-  <div class="card-body">
-    <table class="table table-hover">
-      <thead>
-        <tr>
-          <th>{% trans "Round" %}</th>
-          <th>{% trans "Timestamp" %}</th>
-          <th>{% trans "Assignments" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for log in shuffle_logs %}
-        <tr>
-          <td>{{ log.round.name }}</td>
-          <td>{{ log.timestamp }}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-secondary"
-                    data-toggle="collapse"
-                    data-target="#log-{{ log.pk }}">
-              {% trans "Show/Hide" %}
-            </button>
-            <div id="log-{{ log.pk }}" class="collapse mt-2">
-              <pre class="bg-light p-2">{{ log.speaker_assignments|safe }}</pre>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="3" class="text-muted text-center">{% trans "No shuffles recorded yet." %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  {% for log in shuffle_logs %}
+  <div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>{{ log.round.name }}</strong>
+      <span class="text-muted">{{ log.timestamp }}</span>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm table-striped mb-0">
+        <thead>
+          <tr>
+            <th class="pl-3">{% trans "Team" %}</th>
+            <th>{% trans "Speakers" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for team_name, speakers in log.team_assignments.items %}
+          <tr>
+            <td class="pl-3"><strong>{{ team_name }}</strong></td>
+            <td>{{ speakers|join:", " }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
+  {% empty %}
+  <div class="alert alert-secondary mt-3 text-center">
+    {% trans "No shuffles recorded yet." %}
+  </div>
+  {% endfor %}
+
 {% endblock content %}

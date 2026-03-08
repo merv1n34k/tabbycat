@@ -51,6 +51,7 @@ class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
             })
 
         context['shuffle_data_json'] = json.dumps(teams_data)
+        context['teams_count'] = len(teams_data)
         context['has_shuffle_log'] = ShuffleLog.objects.filter(round=self.round).exists()
 
         # Load pair history for conflict display
@@ -61,6 +62,9 @@ class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
             key = f"{min(row)}-{max(row)}"
             pair_history[key] = pair_history.get(key, 0) + 1
         context['pair_history_json'] = json.dumps(pair_history)
+
+        from utils.misc import reverse_round
+        context['save_url'] = reverse_round('speaker-shuffle-save', self.round)
 
         return context
 
@@ -129,9 +133,31 @@ class ShuffleHistoryView(AdministratorMixin, RoundMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['shuffle_logs'] = ShuffleLog.objects.filter(
+        logs = ShuffleLog.objects.filter(
             round__tournament=self.tournament,
         ).select_related('round').order_by('round__seq', '-timestamp')
+
+        # Resolve speaker/team IDs to names for readable display
+        from participants.models import Team
+        all_speakers = {s.pk: s.name for s in Speaker.objects.filter(team__tournament=self.tournament)}
+        all_teams = {t.pk: t.short_name for t in Team.objects.filter(tournament=self.tournament)}
+
+        enriched_logs = []
+        for log in logs:
+            # Group speakers by team
+            team_assignments = {}
+            for spk_id_str, team_id in log.speaker_assignments.items():
+                team_name = all_teams.get(int(team_id), f"Team #{team_id}")
+                speaker_name = all_speakers.get(int(spk_id_str), f"Speaker #{spk_id_str}")
+                team_assignments.setdefault(team_name, []).append(speaker_name)
+
+            enriched_logs.append({
+                'round': log.round,
+                'timestamp': log.timestamp,
+                'team_assignments': dict(sorted(team_assignments.items())),
+            })
+
+        context['shuffle_logs'] = enriched_logs
         return context
 
 

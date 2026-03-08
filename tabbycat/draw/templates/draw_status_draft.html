@@ -8,6 +8,11 @@
   <a href="{% roundurl 'edit-debate-teams' round %}" class="btn btn-outline-primary">
     {% trans "Edit Sides/Matchups" %}
   </a>
+  {% if pref.fight_club_mode and round.seq > 1 %}
+    <a href="{% roundurl 'speaker-shuffle-edit' round %}" class="btn btn-outline-primary">
+      {% trans "Edit Shuffled Speakers" %}
+    </a>
+  {% endif %}
 {% endblock %}
 
 {% block page-subnav-actions %}

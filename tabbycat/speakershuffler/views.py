@@ -3,15 +3,20 @@ import logging
 
 from django.contrib import messages
 from django.db import transaction
+from django.forms import ModelChoiceField
 from django.http import HttpResponseRedirect, JsonResponse
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.generic.base import TemplateView, View
 
+from actionlog.mixins import LogActionMixin
 from participants.models import Speaker
-from tournaments.mixins import RoundMixin
+from tournaments.mixins import RoundMixin, TournamentMixin
+from utils.misc import redirect_tournament
 from utils.mixins import AdministratorMixin
+from utils.views import ModelFormSetView
 
-from .models import ShuffleLog, SpeakerPairHistory
+from .models import ShuffleLog, SpeakerConflict, SpeakerPairHistory
 from .shuffle import get_current_shuffle_data, perform_speaker_shuffle
 
 logger = logging.getLogger(__name__)
@@ -127,3 +132,67 @@ class ShuffleHistoryView(AdministratorMixin, RoundMixin, TemplateView):
             round__tournament=self.tournament,
         ).select_related('round').order_by('round__seq', '-timestamp')
         return context
+
+
+class SpeakerConflictsView(LogActionMixin, AdministratorMixin, TournamentMixin, ModelFormSetView):
+    """Add/edit speaker-speaker conflicts for Fight Club mode."""
+
+    template_name = 'edit_conflicts.html'
+    page_title = gettext_lazy("Speaker-Speaker Conflicts")
+    page_emoji = "🔶"
+    formset_model = SpeakerConflict
+    save_text = gettext_lazy("Save Speaker-Speaker Conflicts")
+
+    formset_factory_kwargs = {
+        'fields': ('speaker1', 'speaker2'),
+        'field_classes': {'speaker1': ModelChoiceField, 'speaker2': ModelChoiceField},
+    }
+
+    def get_formset_factory_kwargs(self):
+        kwargs = super().get_formset_factory_kwargs()
+        kwargs['extra'] = 10
+        kwargs['can_delete'] = True
+        return kwargs
+
+    def get_formset(self):
+        formset = super().get_formset()
+        all_speakers = Speaker.objects.filter(
+            team__tournament=self.tournament,
+        ).select_related('team').order_by('name')
+        for form in formset:
+            form.fields['speaker1'].queryset = all_speakers
+            form.fields['speaker2'].queryset = all_speakers
+        return formset
+
+    def get_formset_queryset(self):
+        return self.formset_model.objects.filter(
+            tournament=self.tournament,
+        ).order_by('speaker1__name')
+
+    def get_context_data(self, **kwargs):
+        kwargs['save_text'] = self.save_text
+        kwargs['can_edit'] = True
+        return super().get_context_data(**kwargs)
+
+    def get_success_url(self, *args, **kwargs):
+        from utils.misc import reverse_tournament
+        return reverse_tournament('importer-simple-index', self.tournament)
+
+    def formset_valid(self, formset):
+        # Set tournament on new instances before saving
+        for form in formset:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                if form.instance and not form.instance.tournament_id:
+                    form.instance.tournament = self.tournament
+        result = super().formset_valid(formset)
+        nsaved = len(self.instances)
+        ndeleted = len(formset.deleted_objects)
+        if nsaved > 0:
+            messages.success(self.request, _("Saved %(count)d speaker-speaker conflict(s).") % {'count': nsaved})
+        if ndeleted > 0:
+            messages.success(self.request, _("Deleted %(count)d speaker-speaker conflict(s).") % {'count': ndeleted})
+        if nsaved == 0 and ndeleted == 0:
+            messages.success(self.request, _("No changes were made to speaker-speaker conflicts."))
+        if "add_more" in self.request.POST:
+            return redirect_tournament('speakershuffler-conflicts', self.tournament)
+        return result

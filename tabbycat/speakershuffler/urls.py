@@ -17,4 +17,7 @@ urlpatterns = [
             views.ShuffleHistoryView.as_view(),
             name='speaker-shuffle-history'),
     ])),
+    path('conflicts/',
+        views.SpeakerConflictsView.as_view(),
+        name='speakershuffler-conflicts'),
 ]

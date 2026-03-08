@@ -677,6 +677,24 @@ class EnableForfeits(BooleanPreference):
     default = False
 
 
+@tournament_preferences_registry.register
+class FightClub(BooleanPreference):
+    help_text = _("If enabled, speakers are reshuffled into new teams each round based on individual standings.")
+    verbose_name = _("Individual speaker BP mode (Fight Club)")
+    section = debate_rules
+    name = 'fight_club_mode'
+    default = False
+
+
+@tournament_preferences_registry.register
+class SpeakerRepairPenalty(FloatPreference):
+    help_text = _("Penalty for re-pairing speakers who were previously teammates. Higher = less likely.")
+    verbose_name = _("Speaker re-pair penalty")
+    section = debate_rules
+    name = 'speaker_repair_penalty'
+    default = 1000.0
+
+
 # ==============================================================================
 standings = Section('standings', verbose_name=_("Standings"))
 # ==============================================================================

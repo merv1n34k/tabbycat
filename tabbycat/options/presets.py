@@ -164,6 +164,15 @@ class BritishParliamentaryPreferences(PreferencesPreset):
         "<p>Current Standings: {{ URL }}</p>")
 
 
+class FightClubPreferences(BritishParliamentaryPreferences):
+    name         = _("Fight Club (Individual Speaker BP)")
+    description  = _("BP format where speakers compete individually. "
+        "Teams are reshuffled each round based on speaker standings.")
+    show_in_list = True
+    debate_rules__fight_club_mode          = True
+    debate_rules__speaker_repair_penalty   = 1000.0
+
+
 class CanadianParliamentaryPreferences(PreferencesPreset):
     name         = _("Canadian Parliamentary Rules")
     show_in_list = True

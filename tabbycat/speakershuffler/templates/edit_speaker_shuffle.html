@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n debate_tags %}
+
+{% block head-title %}{% trans "Edit Speaker Shuffle" %}{% endblock %}
+{% block page-title %}{% trans "Edit Speaker Shuffle" %}{% endblock %}
+
+{% block page-subnav-sections %}
+  <a class="btn btn-outline-primary" href="{% roundurl 'availability-index' %}">
+    <i data-feather="chevron-left"></i> {% trans "Availability" %}
+  </a>
+
+  <form action="{% roundurl 'speaker-shuffle-perform' %}" method="POST" class="d-inline">
+    {% csrf_token %}
+    <button class="btn btn-primary" type="submit" id="shuffleBtn">
+      <i data-feather="shuffle"></i>
+      {% if has_shuffle_log %}
+        {% trans "Re-Shuffle Speakers" %}
+      {% else %}
+        {% trans "Shuffle Speakers" %}
+      {% endif %}
+    </button>
+  </form>
+
+  {% if has_shuffle_log %}
+    <a class="btn btn-outline-secondary" href="{% roundurl 'speaker-shuffle-history' %}">
+      <i data-feather="clock"></i> {% trans "History" %}
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div id="vueMount">
+  <edit-speaker-shuffle-container
+    :initial-teams='{{ shuffle_data_json|safe }}'
+    :pair-history='{{ pair_history_json|safe }}'
+    save-url="{% roundurl 'speaker-shuffle-save' %}"
+    csrf-token="{{ csrf_token }}"
+  ></edit-speaker-shuffle-container>
+</div>
+{% endblock content %}
+
+{% block js %}
+  {{ block.super }}
+{% endblock js %}

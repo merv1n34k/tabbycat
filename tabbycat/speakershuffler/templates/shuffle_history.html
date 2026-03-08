@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n debate_tags %}
+
+{% block head-title %}{% trans "Shuffle History" %}{% endblock %}
+{% block page-title %}{% trans "Shuffle History" %}{% endblock %}
+
+{% block page-subnav-sections %}
+  <a class="btn btn-outline-primary" href="{% roundurl 'speaker-shuffle-edit' %}">
+    <i data-feather="chevron-left"></i> {% trans "Edit Shuffle" %}
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card mt-3">
+  <div class="card-body">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>{% trans "Round" %}</th>
+          <th>{% trans "Timestamp" %}</th>
+          <th>{% trans "Assignments" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in shuffle_logs %}
+        <tr>
+          <td>{{ log.round.name }}</td>
+          <td>{{ log.timestamp }}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary"
+                    data-toggle="collapse"
+                    data-target="#log-{{ log.pk }}">
+              {% trans "Show/Hide" %}
+            </button>
+            <div id="log-{{ log.pk }}" class="collapse mt-2">
+              <pre class="bg-light p-2">{{ log.speaker_assignments|safe }}</pre>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-muted text-center">{% trans "No shuffles recorded yet." %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock content %}

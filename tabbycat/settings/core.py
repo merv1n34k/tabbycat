@@ -136,6 +136,7 @@ TABBYCAT_APPS = (
     'notifications',
     'importer',
     'registration',
+    'speakershuffler',
 )
 
 INSTALLED_APPS = (

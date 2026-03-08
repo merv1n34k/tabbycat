@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy
 from django.views.generic.base import TemplateView, View
 
 from actionlog.mixins import LogActionMixin
+from actionlog.models import ActionLogEntry
 from participants.models import Speaker
 from tournaments.mixins import RoundMixin, TournamentMixin
 from utils.misc import redirect_tournament
@@ -142,6 +143,7 @@ class SpeakerConflictsView(LogActionMixin, AdministratorMixin, TournamentMixin, 
     page_emoji = "🔶"
     formset_model = SpeakerConflict
     save_text = gettext_lazy("Save Speaker-Speaker Conflicts")
+    action_log_type = ActionLogEntry.ActionType.CONFLICTS_SPEAKER_EDIT
 
     formset_factory_kwargs = {
         'fields': ('speaker1', 'speaker2'),

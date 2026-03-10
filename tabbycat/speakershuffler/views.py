@@ -3,6 +3,7 @@ import logging
 
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Sum
 from django.forms import ModelChoiceField
 from django.http import HttpResponseRedirect, JsonResponse
 from django.utils.translation import gettext as _
@@ -12,6 +13,7 @@ from django.views.generic.base import TemplateView, View
 from actionlog.mixins import LogActionMixin
 from actionlog.models import ActionLogEntry
 from participants.models import Speaker
+from results.models import SpeakerScore
 from tournaments.mixins import RoundMixin, TournamentMixin
 from utils.misc import redirect_tournament
 from utils.mixins import AdministratorMixin
@@ -54,14 +56,48 @@ class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
         context['teams_count'] = len(teams_data)
         context['has_shuffle_log'] = ShuffleLog.objects.filter(round=self.round).exists()
 
-        # Load pair history for conflict display
+        # Load pair history with round-ago info for conflict display
+        current_seq = self.round.seq
         pair_history = {}
-        for row in SpeakerPairHistory.objects.filter(
+        for s1, s2, rnd_seq in SpeakerPairHistory.objects.filter(
+            tournament=self.tournament,
+        ).values_list('speaker1_id', 'speaker2_id', 'round__seq'):
+            key = f"{min(s1, s2)}-{max(s1, s2)}"
+            ago = current_seq - rnd_seq
+            if ago <= 0:
+                continue
+            existing = pair_history.get(key)
+            if existing is None:
+                pair_history[key] = {'ago': ago, 'count': 1}
+            else:
+                existing['count'] += 1
+                if ago < existing['ago']:
+                    existing['ago'] = ago  # Keep most recent
+        context['pair_history_json'] = json.dumps(pair_history)
+
+        # Load speaker-speaker personal conflicts
+        speaker_conflicts = {}
+        for s1, s2 in SpeakerConflict.objects.filter(
             tournament=self.tournament,
         ).values_list('speaker1_id', 'speaker2_id'):
-            key = f"{min(row)}-{max(row)}"
-            pair_history[key] = pair_history.get(key, 0) + 1
-        context['pair_history_json'] = json.dumps(pair_history)
+            key = f"{min(s1, s2)}-{max(s1, s2)}"
+            speaker_conflicts[key] = True
+        context['speaker_conflicts_json'] = json.dumps(speaker_conflicts)
+
+        # Load speaker point totals from confirmed ballots in prior rounds
+        speaker_points = {}
+        if current_seq > 1:
+            scores = SpeakerScore.objects.filter(
+                ballot_submission__confirmed=True,
+                debate_team__debate__round__tournament=self.tournament,
+                debate_team__debate__round__seq__lt=current_seq,
+                ghost=False,
+            ).values('speaker_id').annotate(total=Sum('score'))
+            for row in scores:
+                speaker_points[str(row['speaker_id'])] = float(row['total'])
+        context['speaker_points_json'] = json.dumps(speaker_points)
+
+        context['speakers_per_team'] = self.tournament.pref('substantive_speakers')
 
         from utils.misc import reverse_round
         context['save_url'] = reverse_round('speaker-shuffle-save', self.round)

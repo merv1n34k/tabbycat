@@ -43,6 +43,13 @@
   {% endif %}
 {% endblock %}
 
+{% block extra-css %}
+  <style>
+    .footer { display: none !important; }
+    body { margin-bottom: 0 !important; }
+  </style>
+{% endblock extra-css %}
+
 {% block content %}
 
   {% if not has_shuffle_log and teams_count > 0 %}
@@ -63,6 +70,9 @@
     <edit-speaker-shuffle-container
       :initial-teams="initialTeams"
       :pair-history="pairHistory"
+      :speaker-conflicts="speakerConflicts"
+      :speaker-points="speakerPoints"
+      :speakers-per-team="speakersPerTeam"
       :save-url="saveUrl"
     ></edit-speaker-shuffle-container>
   </div>
@@ -74,6 +84,9 @@
     window.vueData = {
       initialTeams: {{ shuffle_data_json|safe }},
       pairHistory: {{ pair_history_json|safe }},
+      speakerConflicts: {{ speaker_conflicts_json|safe }},
+      speakerPoints: {{ speaker_points_json|safe }},
+      speakersPerTeam: {{ speakers_per_team }},
       saveUrl: "{{ save_url }}",
     }
   </script>

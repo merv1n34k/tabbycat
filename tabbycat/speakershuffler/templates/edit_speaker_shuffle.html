@@ -72,6 +72,7 @@
       :pair-history="pairHistory"
       :speaker-conflicts="speakerConflicts"
       :speaker-points="speakerPoints"
+      :speaker-weighted-scores="speakerWeightedScores"
       :speakers-per-team="speakersPerTeam"
       :save-url="saveUrl"
     ></edit-speaker-shuffle-container>
@@ -86,6 +87,7 @@
       pairHistory: {{ pair_history_json|safe }},
       speakerConflicts: {{ speaker_conflicts_json|safe }},
       speakerPoints: {{ speaker_points_json|safe }},
+      speakerWeightedScores: {{ speaker_weighted_scores_json|safe }},
       speakersPerTeam: {{ speakers_per_team }},
       saveUrl: "{{ save_url }}",
     }

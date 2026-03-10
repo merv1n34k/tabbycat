@@ -53,7 +53,7 @@
               @dragend="onDragEnd"
             >
               <h4 v-if="getSpeakerPoints(speaker)" class="mb-0 py-1 text-monospace vc-draggable-number vc-number">
-                <small class="pl-2 vue-draggable-muted">{{ getSpeakerPoints(speaker) }}</small>
+                <small class="pl-2 vue-draggable-muted">{{ getSpeakerPoints(speaker) }}<template v-if="getSpeakerWeightedScore(speaker)"> / {{ getSpeakerWeightedScore(speaker) }}</template></small>
               </h4>
               <div class="py-1 pl-2 pr-2 d-flex flex-column flex-truncate flex-fill">
                 <h5 class="mb-0 vc-title text-truncate">{{ speaker.name }}</h5>
@@ -105,6 +105,10 @@ export default {
       default: () => ({}),
     },
     speakerPoints: {
+      type: Object,
+      default: () => ({}),
+    },
+    speakerWeightedScores: {
       type: Object,
       default: () => ({}),
     },
@@ -187,6 +191,11 @@ export default {
       const pts = this.speakerPoints[String(speaker.id)]
       if (pts == null) return null
       return Number.isInteger(pts) ? String(pts) : pts.toFixed(1)
+    },
+    getSpeakerWeightedScore(speaker) {
+      const ws = this.speakerWeightedScores[String(speaker.id)]
+      if (ws == null) return null
+      return Number.isInteger(ws) ? String(ws) : ws.toFixed(1)
     },
     hasConflict(team) {
       for (const speaker of team.speakers) {

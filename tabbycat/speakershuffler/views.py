@@ -13,7 +13,7 @@ from django.views.generic.base import TemplateView, View
 from actionlog.mixins import LogActionMixin
 from actionlog.models import ActionLogEntry
 from participants.models import Speaker
-from results.models import SpeakerScore
+from results.models import SpeakerScore, TeamScore
 from tournaments.mixins import RoundMixin, TournamentMixin
 from utils.misc import redirect_tournament
 from utils.mixins import AdministratorMixin
@@ -96,6 +96,37 @@ class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
             for row in scores:
                 speaker_points[str(row['speaker_id'])] = float(row['total'])
         context['speaker_points_json'] = json.dumps(speaker_points)
+
+        # Compute placement-weighted speaker scores
+        COEFFICIENTS = {3: 1.1, 2: 1.075, 1: 1.05, 0: 1.0}
+        speaker_weighted_scores = {}
+        if current_seq > 1:
+            ss_rows = list(SpeakerScore.objects.filter(
+                ballot_submission__confirmed=True,
+                debate_team__debate__round__tournament=self.tournament,
+                debate_team__debate__round__seq__lt=current_seq,
+                ghost=False,
+                position__lte=self.tournament.pref('substantive_speakers'),
+            ).values_list('speaker_id', 'score', 'debate_team_id', 'ballot_submission_id'))
+
+            dt_bs_pairs = {(dt_id, bs_id) for _, _, dt_id, bs_id in ss_rows}
+            ts_lookup = {}
+            if dt_bs_pairs:
+                for dt_id, bs_id, points in TeamScore.objects.filter(
+                    ballot_submission__confirmed=True,
+                ).values_list('debate_team_id', 'ballot_submission_id', 'points'):
+                    if (dt_id, bs_id) in dt_bs_pairs:
+                        ts_lookup[(dt_id, bs_id)] = points
+
+            for speaker_id, score, dt_id, bs_id in ss_rows:
+                points = ts_lookup.get((dt_id, bs_id), 0)
+                coeff = COEFFICIENTS.get(points, 1.0)
+                speaker_weighted_scores[str(speaker_id)] = (
+                    speaker_weighted_scores.get(str(speaker_id), 0) + float(score) * coeff
+                )
+            # Round to 1 decimal
+            speaker_weighted_scores = {k: round(v, 1) for k, v in speaker_weighted_scores.items()}
+        context['speaker_weighted_scores_json'] = json.dumps(speaker_weighted_scores)
 
         context['speakers_per_team'] = self.tournament.pref('substantive_speakers')
 

@@ -24,14 +24,22 @@
           <tr>
             <th class="pl-3">{% trans "Team" %}</th>
             <th>{% trans "Speakers" %}</th>
+            <th class="text-right">{% trans "Total" %}</th>
+            <th class="text-right pr-3">{% trans "Weighted" %}</th>
           </tr>
         </thead>
         <tbody>
           {% for team_name, speakers in log.team_assignments.items %}
-          <tr>
-            <td class="pl-3"><strong>{{ team_name }}</strong></td>
-            <td>{{ speakers|join:", " }}</td>
-          </tr>
+            {% for speaker in speakers %}
+            <tr>
+              {% if forloop.first %}
+                <td class="pl-3" rowspan="{{ speakers|length }}"><strong>{{ team_name }}</strong></td>
+              {% endif %}
+              <td>{{ speaker.name }}</td>
+              <td class="text-right">{% if speaker.total != None %}{{ speaker.total }}{% else %}&mdash;{% endif %}</td>
+              <td class="text-right pr-3">{% if speaker.weighted != None %}{{ speaker.weighted }}{% else %}&mdash;{% endif %}</td>
+            </tr>
+            {% endfor %}
           {% endfor %}
         </tbody>
       </table>

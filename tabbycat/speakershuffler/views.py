@@ -15,6 +15,7 @@ from actionlog.models import ActionLogEntry
 from participants.models import Speaker
 from results.models import SpeakerScore, TeamScore
 from tournaments.mixins import RoundMixin, TournamentMixin
+from tournaments.models import Round
 from utils.misc import redirect_tournament
 from utils.mixins import AdministratorMixin
 from utils.views import ModelFormSetView
@@ -210,14 +211,67 @@ class ShuffleHistoryView(AdministratorMixin, RoundMixin, TemplateView):
         all_speakers = {s.pk: s.name for s in Speaker.objects.filter(team__tournament=self.tournament)}
         all_teams = {t.pk: t.short_name for t in Team.objects.filter(tournament=self.tournament)}
 
+        # Compute per-speaker cumulative totals and weighted scores up to each round
+        # We need scores for all rounds that had a shuffle log
+        round_seqs = sorted({log.round.seq for log in logs})
+        COEFFICIENTS = {3: 1.1, 2: 1.075, 1: 1.05, 0: 1.0}
+
+        # Pre-compute scores per (speaker_id, round_seq_cutoff)
+        # Query all relevant SpeakerScore and TeamScore rows once
+        ss_rows = list(SpeakerScore.objects.filter(
+            ballot_submission__confirmed=True,
+            debate_team__debate__round__tournament=self.tournament,
+            debate_team__debate__round__stage=Round.Stage.PRELIMINARY,
+            ghost=False,
+            position__lte=self.tournament.pref('substantive_speakers'),
+        ).values_list('speaker_id', 'score', 'debate_team_id', 'ballot_submission_id',
+                       'debate_team__debate__round__seq'))
+
+        dt_bs_pairs = {(dt_id, bs_id) for _, _, dt_id, bs_id, _ in ss_rows}
+        ts_lookup = {}
+        if dt_bs_pairs:
+            for dt_id, bs_id, points in TeamScore.objects.filter(
+                ballot_submission__confirmed=True,
+            ).values_list('debate_team_id', 'ballot_submission_id', 'points'):
+                if (dt_id, bs_id) in dt_bs_pairs:
+                    ts_lookup[(dt_id, bs_id)] = points
+
+        # Build {round_seq: {speaker_id: {'total': x, 'weighted': y}}}
+        scores_by_round = {}
+        for seq in round_seqs:
+            totals = {}
+            weighted = {}
+            for speaker_id, score, dt_id, bs_id, rnd_seq in ss_rows:
+                if rnd_seq >= seq:
+                    continue
+                score_f = float(score)
+                totals[speaker_id] = totals.get(speaker_id, 0) + score_f
+                points = ts_lookup.get((dt_id, bs_id), 0)
+                coeff = COEFFICIENTS.get(points, 1.0)
+                weighted[speaker_id] = weighted.get(speaker_id, 0) + score_f * coeff
+            scores_by_round[seq] = {
+                spk_id: {
+                    'total': round(totals.get(spk_id, 0), 1),
+                    'weighted': round(weighted.get(spk_id, 0), 1),
+                }
+                for spk_id in set(totals) | set(weighted)
+            }
+
         enriched_logs = []
         for log in logs:
-            # Group speakers by team
+            round_scores = scores_by_round.get(log.round.seq, {})
+            # Group speakers by team with scores
             team_assignments = {}
             for spk_id_str, team_id in log.speaker_assignments.items():
+                spk_id = int(spk_id_str)
                 team_name = all_teams.get(int(team_id), f"Team #{team_id}")
-                speaker_name = all_speakers.get(int(spk_id_str), f"Speaker #{spk_id_str}")
-                team_assignments.setdefault(team_name, []).append(speaker_name)
+                speaker_name = all_speakers.get(spk_id, f"Speaker #{spk_id_str}")
+                spk_scores = round_scores.get(spk_id, {})
+                team_assignments.setdefault(team_name, []).append({
+                    'name': speaker_name,
+                    'total': spk_scores.get('total'),
+                    'weighted': spk_scores.get('weighted'),
+                })
 
             enriched_logs.append({
                 'round': log.round,

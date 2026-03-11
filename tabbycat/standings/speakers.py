@@ -273,7 +273,8 @@ class PlacementWeightedScoreMetricAnnotator(BaseMetricAnnotator):
     COEFFICIENTS = {3: 1.1, 2: 1.075, 1: 1.05, 0: 1.0}
 
     def annotate(self, queryset, standings, round=None):
-        speaker_ids = [info.pk for info in standings]
+        speakers = list(standings.infos.keys())
+        speaker_ids = [s.pk for s in speakers]
         if not speaker_ids:
             return
 
@@ -310,8 +311,8 @@ class PlacementWeightedScoreMetricAnnotator(BaseMetricAnnotator):
             coeff = self.COEFFICIENTS.get(points, 1.0)
             weighted_totals[speaker_id] = weighted_totals.get(speaker_id, 0) + float(score) * coeff
 
-        for info in standings:
-            standings.add_metric(info, self.key, weighted_totals.get(info.pk, 0))
+        for speaker in speakers:
+            standings.add_metric(speaker, self.key, weighted_totals.get(speaker.pk, 0))
 
 
 # ==============================================================================

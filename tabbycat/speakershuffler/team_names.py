@@ -1,53 +1,202 @@
 """Curated list of fictional character names for Fight Club team naming.
 
 Each round, pairs of characters are randomly combined to form team names
-like "Deadpool & Wolverine" or "Panda & Sensei".
+like "Дедпул & Росомаха" or "По & Вчитель Шіфу".
 """
 
 import random
 
-# Characters from various movies, cartoons, and pop culture
+# Characters from various movies, cartoons, and pop culture (Ukrainian names)
 CHARACTERS = [
-    # Kung Fu Panda
-    "Po", "Tigress", "Shifu", "Viper", "Crane", "Mantis", "Monkey", "Oogway",
+    # Кунг-фу Панда
+    "По",
+    "Тигриця",
+    "Шіфу",
+    "Гадюка",
+    "Журавель",
+    "Богомол",
+    "Мавпа",
+    "Уґвей",
     # Marvel
-    "Deadpool", "Wolverine", "Spider-Man", "Iron Man", "Thor", "Hulk",
-    "Black Widow", "Hawkeye", "Captain America", "Loki", "Groot", "Rocket",
-    "Gamora", "Star-Lord", "Drax", "Scarlet Witch", "Vision", "Ant-Man",
-    "Wasp", "Black Panther", "Doctor Strange", "Thanos",
+    "Дедпул",
+    "Росомаха",
+    "Людина-Павук",
+    "Залізна Людина",
+    "Тор",
+    "Галк",
+    "Чорна Вдова",
+    "Соколине Око",
+    "Капітан Америка",
+    "Локі",
+    "Ґрут",
+    "Ракета",
+    "Гамора",
+    "Зоряний Лорд",
+    "Дракс",
+    "Червона Відьма",
+    "Віжн",
+    "Людина-Мураха",
+    "Оса",
+    "Чорна Пантера",
+    "Доктор Стрендж",
+    "Танос",
     # DC
-    "Batman", "Superman", "Wonder Woman", "Flash", "Aquaman", "Joker",
-    "Harley Quinn", "Catwoman", "Robin", "Alfred",
+    "Бетмен",
+    "Супермен",
+    "Диво-Жінка",
+    "Флеш",
+    "Аквамен",
+    "Джокер",
+    "Гарлі Квін",
+    "Жінка-Кішка",
+    "Робін",
+    "Альфред",
     # Studio Ghibli
-    "Totoro", "Chihiro", "Howl", "Sophie", "Kiki", "Ponyo", "Mononoke",
-    "Ashitaka", "Calcifer", "No-Face",
+    "Тоторо",
+    "Тіхіро",
+    "Гаул",
+    "Софі",
+    "Кікі",
+    "Поньо",
+    "Мононоке",
+    "Ашітака",
+    "Кальцифер",
+    "Безликий",
     # Disney/Pixar
-    "Buzz", "Woody", "Nemo", "Dory", "Simba", "Mufasa", "Elsa", "Moana",
-    "Maui", "Remy", "Wall-E", "Eve", "Baymax", "Stitch", "Rapunzel",
-    "Merida", "Mulan", "Aladdin", "Genie", "Rafiki",
-    # Lord of the Rings
-    "Gandalf", "Aragorn", "Legolas", "Gimli", "Frodo", "Samwise", "Gollum",
-    "Saruman", "Boromir", "Eowyn",
-    # Harry Potter
-    "Dumbledore", "Hermione", "Dobby", "Hagrid", "Snape", "Luna",
-    "McGonagall", "Sirius", "Hedwig", "Neville",
-    # Star Wars
-    "Yoda", "Chewbacca", "Han Solo", "Leia", "Obi-Wan", "R2-D2",
-    "C-3PO", "Vader", "Mandalorian", "Grogu",
-    # Shrek
-    "Shrek", "Donkey", "Fiona", "Puss in Boots", "Gingerbread Man",
-    # Adventure Time / Cartoons
-    "Finn", "Jake", "Pikachu", "Scooby", "Shaggy", "Tom", "Jerry",
-    "SpongeBob", "Patrick", "Garfield", "Odie",
-    # Anime
-    "Goku", "Vegeta", "Naruto", "Sasuke", "Luffy", "Zoro", "Tanjiro",
-    "Nezuko", "Saitama", "Genos",
-    # The Princess Bride / Misc
-    "Inigo Montoya", "Westley", "Zorro", "Jack Sparrow", "Shuri",
-    "Neo", "Morpheus", "Trinity", "Agent Smith",
-    # Miscellaneous
-    "Sherlock", "Watson", "Indiana Jones", "Marty McFly", "Doc Brown",
-    "Katniss", "Optimus Prime", "Bumblebee", "Sonic", "Tails",
+    "Базз",
+    "Вуді",
+    "Немо",
+    "Дорі",
+    "Сімба",
+    "Муфаса",
+    "Ельза",
+    "Моана",
+    "Мауї",
+    "Ремі",
+    "Волл-І",
+    "Єва",
+    "Беймакс",
+    "Стіч",
+    "Рапунцель",
+    "Меріда",
+    "Мулан",
+    "Аладдін",
+    "Джин",
+    "Рафікі",
+    "Жасмін",
+    # Володар Перснів
+    "Ґандальф",
+    "Араґорн",
+    "Леґолас",
+    "Ґімлі",
+    "Фродо",
+    "Семвайз",
+    "Ґолум",
+    "Саруман",
+    "Боромір",
+    "Еовін",
+    # Гаррі Поттер
+    "Дамблдор",
+    "Герміона",
+    "Добі",
+    "Геґрід",
+    "Снейп",
+    "Луна",
+    "МакҐонеґел",
+    "Сіріус",
+    "Гедвіґа",
+    "Невіл",
+    # Зоряні Війни
+    "Йода",
+    "Чубака",
+    "Ган Соло",
+    "Лея",
+    "Обі-Ван",
+    "R2-D2",
+    "C-3PO",
+    "Вейдер",
+    "Мандалорець",
+    "Ґроґу",
+    # Шрек
+    "Шрек",
+    "Віслюк",
+    "Фіона",
+    "Кіт у чоботях",
+    "Пряниковий Чоловічок",
+    # Час Пригод / Мультики
+    "Фінн",
+    "Джейк",
+    "Пікачу",
+    "Скубі",
+    "Шеґґі",
+    "Том",
+    "Джеррі",
+    "Губка Боб",
+    "Патрік",
+    "Ґарфілд",
+    "Оді",
+    # Аніме
+    "Ґоку",
+    "Веджита",
+    "Наруто",
+    "Саске",
+    "Луффі",
+    "Зоро",
+    "Танджіро",
+    "Незуко",
+    "Сайтама",
+    "Ґенос",
+    # Людина-Бензопила (Chainsaw Man)
+    "Денджі",
+    "Почіта",
+    "Макіма",
+    "Акі",
+    "Павер",
+    "Кобені",
+    # Коханий у Франксі (Darling in the Franxx)
+    "Зеро Ту",
+    "Хіро",
+    "Ічіґо",
+    "Ґоро",
+    # Коносуба (KonoSuba)
+    "Казума",
+    "Аква",
+    "Меґумін",
+    "Даркнес",
+    # Смаколики Підземелля (Dungeon Meshi)
+    "Лайос",
+    "Марсіль",
+    "Чілчак",
+    "Сенші",
+    # Ну, постривай! / Мультики
+    "Вовк",
+    "Заєць",
+    "Лелік",
+    "Болік",
+    "Карлсон",
+    "Малюк",
+    "Кіт Леопольд",
+    # Принцеса-наречена / Різне
+    "Ініґо Монтоя",
+    "Вестлі",
+    "Зорро",
+    "Джек Горобець",
+    "Шурі",
+    "Нео",
+    "Морфеус",
+    "Тріниті",
+    "Аґент Сміт",
+    # Різне
+    "Шерлок",
+    "Ватсон",
+    "Індіана Джонс",
+    "Марті МакФлай",
+    "Док Браун",
+    "Кетніс",
+    "Оптімус Прайм",
+    "Бамблбі",
+    "Сонік",
+    "Тейлз",
 ]
 
 
@@ -73,7 +222,7 @@ def generate_team_names(num_teams, used_names=None):
     while len(names) < num_teams and idx + 1 < len(available):
         char1 = available[idx]
         char2 = available[idx + 1]
-        name = f"{char1} & {char2}"
+        name = f"{char1} i {char2}"
 
         if name not in used_names:
             names.append(name)

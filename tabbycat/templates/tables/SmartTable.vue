@@ -1,7 +1,7 @@
 <script setup>
 import _ from 'lodash'
 import { mkConfig, generateCsv, download } from 'export-to-csv'
-import { computed, defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent, toRef } from 'vue'
 import SmartHeader from './SmartHeader.vue'
 import SmartCell from './SmartCell.vue'
 import CheckCell from '../tables/CheckCell.vue'
@@ -70,7 +70,7 @@ const {
   getSortableProperty,
   defaultSortKey: props.defaultSortKey,
   defaultSortOrder: props.defaultSortOrder,
-  externalFilterKey: props.externalFilterKey,
+  externalFilterKey: toRef(props, 'externalFilterKey'),
 })
 
 const getCellDataWithHighlight = (cellData, _cellIndex, rowIndex) => {

@@ -1,4 +1,4 @@
-import { computed, ref, toRef, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import _ from 'lodash'
 
 export function useSortableTable ({ headers, sortableData, getSortableProperty, defaultSortKey, defaultSortOrder, externalFilterKey }) {
@@ -16,10 +16,10 @@ export function useSortableTable ({ headers, sortableData, getSortableProperty, 
   }
 
   if (externalFilterKey) {
-    const externalFilterRef = toRef(externalFilterKey)
-    watch(externalFilterRef, (newValue) => {
-      filterKey.value = newValue
-    })
+    // externalFilterKey is a Ref (from toRef(props, 'externalFilterKey'))
+    watch(externalFilterKey, (newValue) => {
+      filterKey.value = newValue ?? ''
+    }, { immediate: true })
   }
 
   const dataOrderedByKey = computed(() => {

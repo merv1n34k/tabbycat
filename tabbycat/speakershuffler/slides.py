@@ -358,7 +358,86 @@ def generate_round_slide(round_obj, photos_dir, output_dir):
     return filepath
 
 
-def generate_round_slides(round_obj, photos_dir, output_dir):
+def generate_round_slide_from_template(round_obj, photos_dir, template_path, output_dir):
+    """Generate a slide using a pre-designed template PNG as the background.
+
+    The template provides the full visual design. This function overlays
+    photos, speaker names, team names, position labels, and the title.
+    """
+    from draw.models import Debate, DebateTeam
+    from participants.models import Speaker
+
+    debate = Debate.objects.filter(round=round_obj).order_by('pk').first()
+    if not debate:
+        logger.warning("No debate found for %s", round_obj)
+        return None
+
+    img = Image.open(template_path).convert('RGB')
+    img = img.resize((SLIDE_W, SLIDE_H), Image.LANCZOS)
+    draw = ImageDraw.Draw(img)
+
+    debate_teams = list(
+        DebateTeam.objects.filter(debate=debate)
+        .select_related('team')
+        .order_by('side')
+    )
+
+    font_pos = _load_serif(38)
+    font_team = _load_serif(20)
+    font_speaker = _load_serif(17)
+
+    for side_idx, dt in enumerate(debate_teams[:4]):
+        if side_idx >= len(BP_POSITIONS):
+            break
+        pos = BP_POSITIONS[side_idx]
+        team = dt.team
+        team_name = team.short_name or team.reference
+        speakers = list(Speaker.objects.filter(team=team).order_by('pk'))
+
+        qx, qy = _quad_origin(pos["col"], pos["row"])
+        quad_cx = qx + QUAD_W // 2
+
+        badge_h = 40
+        team_h = 25
+        gap_label = 8
+        speaker_label_h = 30
+        total_block_h = badge_h + team_h + gap_label + PHOTO_H + speaker_label_h
+        block_top = qy + (QUAD_H - total_block_h) // 2
+
+        # Position label
+        draw.text((quad_cx, block_top), pos["label"], fill=GOLD_BRIGHT, font=font_pos, anchor="mt")
+
+        # Team name
+        draw.text((quad_cx, block_top + badge_h), team_name, fill=CREAM, font=font_team, anchor="mt")
+
+        # Photos
+        photo_y = block_top + badge_h + team_h + gap_label
+        total_photos_w = PHOTO_W * 2 + PHOTO_GAP
+        photos_start_cx = qx + (QUAD_W - total_photos_w) // 2 + PHOTO_W // 2
+
+        for i, speaker in enumerate(speakers[:2]):
+            cx = photos_start_cx + i * (PHOTO_W + PHOTO_GAP)
+            name = speaker.name if hasattr(speaker, 'name') else speaker
+            _draw_speaker_photo(img, draw, name, photos_dir, cx, photo_y, font_speaker)
+
+    # Title overlay
+    tournament_name = round_obj.tournament.short_name or round_obj.tournament.name
+    _draw_title_overlay(draw, tournament_name, round_obj.name)
+
+    # Save
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    filename = f"round{round_obj.seq}.png"
+    filepath = output_path / filename
+    img.save(filepath, "PNG")
+    logger.info("Generated slide (template): %s", filepath)
+    return filepath
+
+
+def generate_round_slides(round_obj, photos_dir, output_dir, template_path=None):
     """Generate slides for a round. One slide per round in BP format."""
-    path = generate_round_slide(round_obj, photos_dir, output_dir)
+    if template_path:
+        path = generate_round_slide_from_template(round_obj, photos_dir, template_path, output_dir)
+    else:
+        path = generate_round_slide(round_obj, photos_dir, output_dir)
     return [path] if path else []

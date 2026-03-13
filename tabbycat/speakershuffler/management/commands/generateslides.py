@@ -19,6 +19,8 @@ class Command(BaseCommand):
                             help='Path to directory containing speaker photos')
         parser.add_argument('--output-dir', type=str, default='./slides',
                             help='Path to output directory for generated slides (default: ./slides)')
+        parser.add_argument('--template', type=str, default=None,
+                            help='Path to a template PNG to use as the slide background')
 
     def handle(self, *args, **options):
         try:
@@ -40,12 +42,21 @@ class Command(BaseCommand):
 
         output_dir = Path(options['output_dir']).resolve()
 
+        template_path = None
+        if options['template']:
+            template_path = Path(options['template']).resolve()
+            if not template_path.is_file():
+                raise CommandError(f"Template file '{template_path}' does not exist.")
+
         self.stdout.write(f"Generating slides for {round_obj.name}...")
         self.stdout.write(f"  Photos: {photos_dir}")
+        if template_path:
+            self.stdout.write(f"  Template: {template_path}")
         self.stdout.write(f"  Output: {output_dir}")
 
         from speakershuffler.slides import generate_round_slides
-        slides = generate_round_slides(round_obj, str(photos_dir), str(output_dir))
+        slides = generate_round_slides(round_obj, str(photos_dir), str(output_dir),
+                                       template_path=str(template_path) if template_path else None)
 
         self.stdout.write(self.style.SUCCESS(f"Generated {len(slides)} slide(s):"))
         for s in slides:

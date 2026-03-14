@@ -8,7 +8,7 @@ from tournaments.models import Round, Tournament
 
 
 class Command(BaseCommand):
-    help = 'Generate Fight Club slides with speaker photos for a round.'
+    help = 'Generate Fight Club slides (one per room) for a round.'
 
     def add_arguments(self, parser):
         parser.add_argument('tournament', type=str,
@@ -17,10 +17,10 @@ class Command(BaseCommand):
                             help='Round sequence number')
         parser.add_argument('--photos-dir', type=str, required=True,
                             help='Path to directory containing speaker photos')
+        parser.add_argument('--template', type=str, required=True,
+                            help='Path to the template PNG for slide background')
         parser.add_argument('--output-dir', type=str, default='./slides',
-                            help='Path to output directory for generated slides (default: ./slides)')
-        parser.add_argument('--template', type=str, default=None,
-                            help='Path to a template PNG to use as the slide background')
+                            help='Output directory (default: ./slides)')
 
     def handle(self, *args, **options):
         try:
@@ -40,23 +40,21 @@ class Command(BaseCommand):
         if not photos_dir.is_dir():
             raise CommandError(f"Photos directory '{photos_dir}' does not exist.")
 
-        output_dir = Path(options['output_dir']).resolve()
+        template_path = Path(options['template']).resolve()
+        if not template_path.is_file():
+            raise CommandError(f"Template file '{template_path}' does not exist.")
 
-        template_path = None
-        if options['template']:
-            template_path = Path(options['template']).resolve()
-            if not template_path.is_file():
-                raise CommandError(f"Template file '{template_path}' does not exist.")
+        output_dir = Path(options['output_dir']).resolve()
 
         self.stdout.write(f"Generating slides for {round_obj.name}...")
         self.stdout.write(f"  Photos: {photos_dir}")
-        if template_path:
-            self.stdout.write(f"  Template: {template_path}")
+        self.stdout.write(f"  Template: {template_path}")
         self.stdout.write(f"  Output: {output_dir}")
 
         from speakershuffler.slides import generate_round_slides
-        slides = generate_round_slides(round_obj, str(photos_dir), str(output_dir),
-                                       template_path=str(template_path) if template_path else None)
+        slides = generate_round_slides(
+            round_obj, str(photos_dir), str(template_path), str(output_dir),
+        )
 
         self.stdout.write(self.style.SUCCESS(f"Generated {len(slides)} slide(s):"))
         for s in slides:

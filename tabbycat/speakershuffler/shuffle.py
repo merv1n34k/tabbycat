@@ -75,33 +75,33 @@ def _load_personal_conflicts(tournament):
 
 
 def _populate_round1_history(tournament):
-    """Auto-populate pair history from initial team assignments for round 1.
-    Called when first shuffle runs (round 2)."""
+    """Auto-populate pair history and ShuffleLog from initial team assignments
+    for round 1.  Called when first shuffle runs (round 2)."""
     round1 = tournament.round_set.filter(seq=1).first()
     if not round1:
         return
 
-    if SpeakerPairHistory.objects.filter(round=round1).exists():
-        return
-
     teams = Team.objects.filter(tournament=tournament)
-    rows = []
-    for team in teams:
-        speakers = list(Speaker.objects.filter(team=team).order_by('pk'))
-        if len(speakers) == 2:
-            s1, s2 = speakers
-            if s1.pk > s2.pk:
-                s1, s2 = s2, s1
-            rows.append(SpeakerPairHistory(
-                tournament=tournament,
-                speaker1=s1,
-                speaker2=s2,
-                round=round1,
-            ))
-    SpeakerPairHistory.objects.bulk_create(rows, ignore_conflicts=True)
-    logger.info("Populated round 1 pair history: %d pairs", len(rows))
 
-    # Also create a ShuffleLog for round 1 so we have historical team names
+    # Pair history
+    if not SpeakerPairHistory.objects.filter(round=round1).exists():
+        rows = []
+        for team in teams:
+            speakers = list(Speaker.objects.filter(team=team).order_by('pk'))
+            if len(speakers) == 2:
+                s1, s2 = speakers
+                if s1.pk > s2.pk:
+                    s1, s2 = s2, s1
+                rows.append(SpeakerPairHistory(
+                    tournament=tournament,
+                    speaker1=s1,
+                    speaker2=s2,
+                    round=round1,
+                ))
+        SpeakerPairHistory.objects.bulk_create(rows, ignore_conflicts=True)
+        logger.info("Populated round 1 pair history: %d pairs", len(rows))
+
+    # ShuffleLog for round 1 so historical draw display works
     if not ShuffleLog.objects.filter(round=round1).exists():
         assignments = {}
         team_names = {}

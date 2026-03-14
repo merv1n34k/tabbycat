@@ -557,10 +557,9 @@ class Round(models.Model):
                     historical_name = team_names[team.pk]
                     team.reference = historical_name
                     team.short_reference = historical_name[:35]
-                    # Clear cached properties that derive from reference
-                    team.__dict__.pop('short_name', None)
-                    team.__dict__.pop('long_name', None)
-                    team.__dict__.pop('code_name', None)
+                    # short_name/long_name are regular fields, must set explicitly
+                    team.short_name = team._construct_short_name()
+                    team.long_name = team._construct_long_name()
 
     # --------------------------------------------------------------------------
     # Convenience querysets

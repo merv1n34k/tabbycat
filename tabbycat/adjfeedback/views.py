@@ -367,15 +367,46 @@ class FeedbackFromAdjudicatorView(FeedbackFromSourceView):
 
 class BaseAddFeedbackIndexView(TournamentMixin, VueTableTemplateView):
 
+    def _build_fight_club_team_names(self, tournament):
+        """Build {team_pk: {round_abbr: name}} from ShuffleLog for all rounds."""
+        from speakershuffler.models import ShuffleLog
+        team_round_names = {}
+        for log in ShuffleLog.objects.filter(
+            round__tournament=tournament,
+        ).select_related('round').order_by('round__seq'):
+            if not log.team_names:
+                continue
+            for team_pk_str, name in log.team_names.items():
+                team_pk = int(team_pk_str)
+                team_round_names.setdefault(team_pk, []).append(
+                    (log.round.abbreviation, name),
+                )
+        return team_round_names
+
     def get_tables(self):
         tournament = self.tournament
 
         use_code_names = use_team_code_names_data_entry(self.tournament, self.tabroom)
+
+        # In Fight Club mode, show all historical names so people can find their team
+        fight_club_names = {}
+        if tournament.pref('fight_club_mode'):
+            fight_club_names = self._build_fight_club_team_names(tournament)
+
         teams_table = TabbycatTableBuilder(view=self, sort_key="team", title=_("A Team"))
-        add_link_data = [{
-            'text': conditional_escape(team_name_for_data_entry(team, use_code_names)),
-            'link': self.get_from_team_link(team),
-        } for team in tournament.team_set.all()]
+        add_link_data = []
+        for team in tournament.team_set.all():
+            base_name = conditional_escape(team_name_for_data_entry(team, use_code_names))
+            if team.pk in fight_club_names:
+                history = fight_club_names[team.pk]
+                parts = [f"{abbr}: {name}" for abbr, name in history]
+                text = " / ".join(parts)
+            else:
+                text = base_name
+            add_link_data.append({
+                'text': text,
+                'link': self.get_from_team_link(team),
+            })
         header = {'key': 'team', 'title': _("Team")}
         teams_table.add_column(header, add_link_data)
 

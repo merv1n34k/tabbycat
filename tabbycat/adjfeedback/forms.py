@@ -236,6 +236,15 @@ def make_feedback_form_class_for_team(source, tournament, submission_fields, con
     else:
         debates = debates.filter(round__draw_status=Round.Status.RELEASED)
 
+    # In Fight Club mode, load historical team names from ShuffleLog
+    historical_team_names = {}
+    if tournament.pref('fight_club_mode'):
+        from speakershuffler.models import ShuffleLog
+        for log in ShuffleLog.objects.filter(round__tournament=tournament):
+            round_names = {int(k): v for k, v in log.team_names.items()} if log.team_names else {}
+            if source.pk in round_names:
+                historical_team_names[log.round_id] = round_names[source.pk]
+
     choices = [(None, _("-- Adjudicators --"))]
     for debate in debates:
         # Need to associate the submission status to Adjudicator objects
@@ -252,7 +261,13 @@ def make_feedback_form_class_for_team(source, tournament, submission_fields, con
         round_choices = []
         for adj, pos in das:
             round_choices.append(adj_choice(adj, debate, pos))
-        choices.append((debate.round.name, round_choices))
+
+        # Include historical team name in the optgroup label for Fight Club
+        label = debate.round.name
+        team_name = historical_team_names.get(debate.round_id)
+        if team_name:
+            label = f"{label} ({team_name})"
+        choices.append((label, round_choices))
 
     class FeedbackForm(BaseFeedbackForm):
         _tournament = tournament  # BaseFeedbackForm setting

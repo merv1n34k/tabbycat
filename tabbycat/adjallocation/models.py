@@ -107,6 +107,21 @@ class TeamInstitutionConflict(models.Model):
         return '{} with {}'.format(self.team, self.institution)
 
 
+class AdjudicatorSpeakerConflict(models.Model):
+    adjudicator = models.ForeignKey('participants.Adjudicator', models.CASCADE,
+        verbose_name=_("adjudicator"))
+    speaker = models.ForeignKey('participants.Speaker', models.CASCADE,
+        verbose_name=_("speaker"))
+
+    class Meta:
+        constraints = [UniqueConstraint(fields=['adjudicator', 'speaker'])]
+        verbose_name = _("adjudicator-speaker conflict")
+        verbose_name_plural = _("adjudicator-speaker conflicts")
+
+    def __str__(self):
+        return '{} with {}'.format(self.adjudicator, self.speaker)
+
+
 # ==============================================================================
 # Preformed panels
 # ==============================================================================

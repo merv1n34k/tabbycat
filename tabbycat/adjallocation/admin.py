@@ -5,7 +5,8 @@ from draw.models import DebateTeam
 from utils.admin import ModelAdmin
 
 from .models import (AdjudicatorAdjudicatorConflict, AdjudicatorInstitutionConflict,
-                     AdjudicatorTeamConflict, DebateAdjudicator, PreformedPanel,
+                     AdjudicatorSpeakerConflict, AdjudicatorTeamConflict,
+                     DebateAdjudicator, PreformedPanel,
                      PreformedPanelAdjudicator, TeamInstitutionConflict)
 
 
@@ -58,6 +59,13 @@ class TeamInstitutionConflictAdmin(ModelAdmin):
     list_display = ('team', 'institution')
     list_select_related = ('team__institution', 'team__tournament', 'institution')
     search_fields = ('team__short_name', 'team__long_name', 'institution__name')
+
+
+@admin.register(AdjudicatorSpeakerConflict)
+class AdjudicatorSpeakerConflictAdmin(ModelAdmin):
+    list_display = ('adjudicator', 'speaker')
+    list_select_related = ('adjudicator__institution', 'speaker__team__tournament')
+    search_fields = ('adjudicator__name', 'speaker__name')
 
 
 class PreformedPanelAdjudicatorInline(admin.TabularInline):

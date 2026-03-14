@@ -5,7 +5,8 @@ from itertools import combinations, product
 from typing import Dict, List, Tuple, TypedDict
 
 from adjallocation.models import (AdjudicatorAdjudicatorConflict, AdjudicatorInstitutionConflict,
-                     AdjudicatorTeamConflict, TeamInstitutionConflict)
+                     AdjudicatorSpeakerConflict, AdjudicatorTeamConflict,
+                     TeamInstitutionConflict)
 from draw.models import Debate
 from participants.models import Adjudicator, Team
 
@@ -68,6 +69,16 @@ class ConflictsInfo:
             team__in=self.teams,
         ).distinct()
         self.adjteamconflicts = {(c.adjudicator_id, c.team_id) for c in adjteamconflict_instances}
+
+        # Adjudicator-speaker conflicts: resolve to adj-team pairs using
+        # speaker's current team assignment, so the Hungarian allocator avoids
+        # placing the adjudicator on whatever team the speaker is currently on.
+        adjspeakerconflict_instances = AdjudicatorSpeakerConflict.objects.filter(
+            adjudicator__in=self.adjudicators,
+            speaker__team__in=self.teams,
+        ).select_related('speaker')
+        for c in adjspeakerconflict_instances:
+            self.adjteamconflicts.add((c.adjudicator_id, c.speaker.team_id))
 
         adjadjconflict_instances = AdjudicatorAdjudicatorConflict.objects.filter(
             adjudicator1__in=self.adjudicators,

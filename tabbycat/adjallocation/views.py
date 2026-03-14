@@ -25,7 +25,7 @@ from utils.views import ModelFormSetView
 
 from .conflicts import ConflictsInfo, HistoryInfo
 from .models import (AdjudicatorAdjudicatorConflict, AdjudicatorInstitutionConflict,
-                     AdjudicatorTeamConflict,
+                     AdjudicatorSpeakerConflict, AdjudicatorTeamConflict,
                      PreformedPanelAdjudicator, TeamInstitutionConflict)
 from .serializers import EditDebateAdjsDebateSerializer, EditPanelAdjsPanelSerializer, EditPanelOrDebateAdjSerializer
 
@@ -448,3 +448,50 @@ class TeamInstitutionConflictsView(BaseAdjudicatorConflictsView):
             ) % {'count': ndeleted})
         if nsaved == 0 and ndeleted == 0:
             messages.success(self.request, _("No changes were made to team-institution conflicts."))
+
+
+class AdjudicatorSpeakerConflictsView(BaseAdjudicatorConflictsView):
+
+    view_permission = Permission.VIEW_ADJ_SPEAKER_CONFLICTS
+    edit_permission = Permission.EDIT_ADJ_SPEAKER_CONFLICTS
+
+    action_log_type = ActionLogEntry.ActionType.CONFLICTS_ADJ_SPEAKER_EDIT
+    formset_model = AdjudicatorSpeakerConflict
+    page_title = gettext_lazy("Adjudicator-Speaker Conflicts")
+    save_text = gettext_lazy("Save Adjudicator-Speaker Conflicts")
+    same_view = 'adjallocation-conflicts-adj-speaker'
+    formset_factory_kwargs = BaseAdjudicatorConflictsView.formset_factory_kwargs.copy()
+    formset_factory_kwargs.update({
+        'fields': ('adjudicator', 'speaker'),
+        'field_classes': {'adjudicator': DedupModelChoiceField, 'speaker': DedupModelChoiceField},
+    })
+
+    def get_formset(self):
+        formset = super().get_formset()
+        all_adjs = self.tournament.adjudicator_set.order_by('name').all()
+        all_speakers = Speaker.objects.filter(team__tournament=self.tournament).order_by('name').all()
+        for form in formset:
+            form.fields['adjudicator'].queryset = all_adjs
+            form.fields['speaker'].queryset = all_speakers
+        return formset
+
+    def get_formset_queryset(self):
+        return self.formset_model.objects.filter(
+            adjudicator__tournament=self.tournament,
+        ).order_by('adjudicator__name')
+
+    def add_message(self, nsaved, ndeleted):
+        if nsaved > 0:
+            messages.success(self.request, ngettext(
+                "Saved %(count)d adjudicator-speaker conflict.",
+                "Saved %(count)d adjudicator-speaker conflicts.",
+                nsaved,
+            ) % {'count': nsaved})
+        if ndeleted > 0:
+            messages.success(self.request, ngettext(
+                "Deleted %(count)d adjudicator-speaker conflict.",
+                "Deleted %(count)d adjudicator-speaker conflicts.",
+                ndeleted,
+            ) % {'count': ndeleted})
+        if nsaved == 0 and ndeleted == 0:
+            messages.success(self.request, _("No changes were made to adjudicator-speaker conflicts."))

@@ -101,6 +101,20 @@ def _populate_round1_history(tournament):
     SpeakerPairHistory.objects.bulk_create(rows, ignore_conflicts=True)
     logger.info("Populated round 1 pair history: %d pairs", len(rows))
 
+    # Also create a ShuffleLog for round 1 so we have historical team names
+    if not ShuffleLog.objects.filter(round=round1).exists():
+        assignments = {}
+        team_names = {}
+        for team in teams:
+            team_names[str(team.pk)] = team.short_name
+            for s in Speaker.objects.filter(team=team):
+                assignments[str(s.pk)] = team.pk
+        ShuffleLog.objects.create(
+            round=round1,
+            speaker_assignments=assignments,
+            team_names=team_names,
+        )
+
 
 def _rank_speakers(tournament, round, speakers):
     """Rank speakers using the tournament's speaker standings precedence.
@@ -245,9 +259,14 @@ def perform_speaker_shuffle(round):
             ))
         SpeakerPairHistory.objects.bulk_create(history_rows)
 
-        # Create audit log
+        # Create audit log with team names
         log_data = {str(spk_pk): team.pk for spk_pk, team in assignments.items()}
-        ShuffleLog.objects.create(round=round, speaker_assignments=log_data)
+        team_names = {str(t.pk): t.short_name for t in available_teams}
+        ShuffleLog.objects.create(
+            round=round,
+            speaker_assignments=log_data,
+            team_names=team_names,
+        )
 
     logger.info("Shuffle complete for %s: %d speakers across %d teams",
                 round, len(assignments), num_teams)

@@ -57,6 +57,11 @@ class ShuffleLog(models.Model):
         verbose_name=_("speaker assignments"),
         help_text=_("Mapping of speaker ID to team ID"),
     )
+    team_names = models.JSONField(
+        verbose_name=_("team names"),
+        help_text=_("Mapping of team ID to team name for this round"),
+        default=dict, blank=True,
+    )
 
     class Meta:
         verbose_name = _("shuffle log")

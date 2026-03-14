@@ -101,12 +101,12 @@ class Command(BaseCommand):
         r1 = Round.objects.create(
             tournament=t, seq=1, name="Round 1", abbreviation="R1",
             stage=Round.Stage.PRELIMINARY,
-            draw_type=Round.DrawType.RANDOM,
+            draw_type=Round.DrawType.POWERPAIRED,
         )
         r2 = Round.objects.create(
             tournament=t, seq=2, name="Round 2", abbreviation="R2",
             stage=Round.Stage.PRELIMINARY,
-            draw_type=Round.DrawType.RANDOM,
+            draw_type=Round.DrawType.POWERPAIRED,
         )
         self.stdout.write("Created rounds: R1, R2")
 

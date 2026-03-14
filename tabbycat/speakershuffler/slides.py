@@ -9,7 +9,7 @@ import logging
 import os
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,9 @@ def generate_room_slide(debate, round_obj, photos_dir, template_path, output_pat
             photo_path = _find_photo(photos_dir, speaker.name)
             if photo_path:
                 try:
-                    photo = Image.open(photo_path).convert('RGB')
+                    photo = Image.open(photo_path)
+                    photo = ImageOps.exif_transpose(photo)
+                    photo = photo.convert('RGB')
                     photo = photo.resize((PHOTO_W, PHOTO_H), Image.LANCZOS)
                     img.paste(photo, (px, py))
                 except Exception as e:

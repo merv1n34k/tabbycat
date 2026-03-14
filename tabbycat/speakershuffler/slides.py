@@ -99,13 +99,21 @@ def generate_room_slide(debate, round_obj, photos_dir, template_path, output_pat
     draw = ImageDraw.Draw(img)
 
     font_header = _load_font(48)
+    font_sub = _load_font(28)
     font_name = _load_font(22)
 
-    # Header: "Round N  —  Room Name"
-    room_name = debate.venue.name if debate.venue else f"Room {debate.pk}"
-    header_text = f"{round_obj.name}  \u2014  {room_name}"
-    draw.text((1920 // 2, HEADER_Y), header_text, fill=TEXT_COLOR,
+    # Title: round name
+    cx = 1920 // 2
+    draw.text((cx, HEADER_Y - 18), round_obj.name, fill=TEXT_COLOR,
               font=font_header, anchor="mm")
+
+    # Subtitle: room + adjudicator
+    room_name = debate.venue.name if debate.venue else f"Room {debate.pk}"
+    adjs = debate.debateadjudicator_set.select_related('adjudicator').all()
+    adj_names = ", ".join(da.adjudicator.name for da in adjs)
+    subtitle = f"{room_name}  |  {adj_names}" if adj_names else room_name
+    draw.text((cx, HEADER_Y + 22), subtitle, fill=TEXT_COLOR_LIGHT,
+              font=font_sub, anchor="mm")
 
     # Get debate teams in side order
     debate_teams = list(

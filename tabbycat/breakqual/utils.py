@@ -21,9 +21,13 @@ def get_breaking_teams(category, prefetch=(), rankings=('rank',)):
     `rankings` is passed to `rankings` in the TeamStandingsGenerator.
     """
     teams = category.breaking_teams.all().prefetch_related(*prefetch)
-    metrics = category.tournament.pref('team_standings_precedence')
-    generator = TeamStandingsGenerator(metrics, rankings)
-    standings = generator.generate(teams, tournament=category.tournament)
+
+    if category.rule == 'fight-club':
+        standings = _generate_fight_club_standings(category, teams, rankings)
+    else:
+        metrics = category.tournament.pref('team_standings_precedence')
+        generator = TeamStandingsGenerator(metrics, rankings)
+        standings = generator.generate(teams, tournament=category.tournament)
 
     breakingteams_by_team_id = {bt.team_id: bt for bt in category.breakingteam_set.all()}
 
@@ -38,6 +42,44 @@ def get_breaking_teams(category, prefetch=(), rankings=('rank',)):
         else:
             tsi.break_rank = bt.break_rank
 
+    return standings
+
+
+def _generate_fight_club_standings(category, teams, rankings):
+    """Generate standings for Fight Club mode, ranking teams by sum of
+    their current speakers' individual scores."""
+    from participants.models import Speaker
+    from standings.base import Standings
+    from standings.ranking import BasicRankAnnotator
+    from standings.speakers import SpeakerStandingsGenerator
+
+    tournament = category.tournament
+    metrics = tournament.pref('speaker_standings_precedence')
+    last_prelim = tournament.prelim_rounds().order_by('-seq').first()
+
+    speaker_qs = Speaker.objects.filter(team__in=teams)
+    generator = SpeakerStandingsGenerator(metrics, ('rank',))
+    speaker_standings = generator.generate(speaker_qs, round=last_prelim)
+
+    first_metric_key = metrics[0]
+    speaker_scores = {}
+    for info in speaker_standings:
+        speaker_scores[info.speaker.pk] = info.metrics.get(first_metric_key, 0) or 0
+
+    team_scores = {}
+    for team in teams:
+        team_speaker_pks = Speaker.objects.filter(team=team).values_list('pk', flat=True)
+        team_scores[team] = sum(speaker_scores.get(pk, 0) for pk in team_speaker_pks)
+
+    standings = Standings(teams)
+    standings.record_added_metric(
+        'speaker_total', _("Speaker total"), _("Spk"), None, False,
+    )
+    for team in teams:
+        standings.add_metric(team, 'speaker_total', team_scores[team])
+
+    standings.sort(['speaker_total'])
+    BasicRankAnnotator(['speaker_total']).run(standings)
     return standings
 
 

@@ -119,6 +119,7 @@ class Command(BaseCommand):
             break_size=2,
             is_general=True,
             priority=100,
+            rule='fight-club',
         )
         gf = Round.objects.create(
             tournament=t, seq=3, name="Grand Final", abbreviation="GF",

@@ -232,18 +232,29 @@ class TabbycatTableBuilder(BaseTableBuilder):
         return use_team_code_names(self.tournament, self.admin, user=self.user)
 
     def _team_short_name(self, team):
-        """Returns the appropriate short name for the team, accounting for team code name preference."""
+        """Returns the appropriate short name for the team, accounting for team code name preference.
+        In Fight Club mode, returns speaker names instead."""
         if self._use_team_code_names:
             return escape(team.code_name)
-        else:
-            return escape(team.short_name)
+        if self.tournament.pref('fight_club_mode'):
+            return escape(self._fight_club_team_name(team))
+        return escape(team.short_name)
 
     def _team_long_name(self, team):
-        """Returns the appropriate long name for the team, accounting for team code name preference."""
+        """Returns the appropriate long name for the team, accounting for team code name preference.
+        In Fight Club mode, returns speaker names instead."""
         if self._use_team_code_names:
             return escape(team.code_name)
-        else:
-            return escape(team.long_name)
+        if self.tournament.pref('fight_club_mode'):
+            return escape(self._fight_club_team_name(team))
+        return escape(team.long_name)
+
+    def _fight_club_team_name(self, team):
+        """Returns team name as speaker names joined by ' & '."""
+        speakers = getattr(team, '_prefetched_objects_cache', {}).get('speaker_set')
+        if speakers is None:
+            speakers = team.speaker_set.all()
+        return " & ".join(s.name for s in speakers)
 
     def _adjudicator_record_link(self, adj, suffix=""):
         unredact = self.admin and has_permission(self.user, Permission.VIEW_ANONYMOUS, self.tournament)

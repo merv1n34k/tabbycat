@@ -149,17 +149,6 @@ def _rank_speakers(tournament, round, speakers):
     return ranked
 
 
-def _rename_teams(teams):
-    """Rename teams to their current speakers' names, e.g. "Alice & Bob"."""
-    for team in teams:
-        speakers = Speaker.objects.filter(team=team).order_by('pk')
-        name = " & ".join(s.name for s in speakers)
-        team.reference = name
-        team.short_reference = name[:35]
-        team.use_institution_prefix = False
-        team.save()
-
-
 def perform_speaker_shuffle(round):
     """Main entry point: shuffle speakers into new teams for this round.
 
@@ -244,9 +233,6 @@ def perform_speaker_shuffle(round):
         # Update Speaker.team FK
         for speaker_pk, team in assignments.items():
             Speaker.objects.filter(pk=speaker_pk).update(team=team)
-
-        # Rename teams with character-pair names
-        _rename_teams(available_teams)
 
         # Record pair history
         history_rows = []

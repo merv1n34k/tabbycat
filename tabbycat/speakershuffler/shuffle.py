@@ -319,16 +319,25 @@ def get_current_shuffle_data(round):
     teams = _get_available_teams(round)
     advancing_speakers = _get_speakers_for_teams(teams, round=round)
 
-    # For subsequent break rounds, group speakers by their previous-round
-    # ShuffleLog assignment (current FK may be stale from old shuffles).
+    # Determine speaker→team mapping.  Priority:
+    # 1. This round's ShuffleLog (shuffle already ran for this round)
+    # 2. Previous round's ShuffleLog (no shuffle yet, show pre-shuffle state)
+    # 3. Current FK (fallback)
     speaker_team_map = None
     if round.is_break_round and round.prev is not None and round.prev.is_break_round:
-        prev_log = ShuffleLog.objects.filter(round=round.prev).order_by('-timestamp').first()
-        if prev_log and prev_log.speaker_assignments:
+        current_log = ShuffleLog.objects.filter(round=round).order_by('-timestamp').first()
+        if current_log and current_log.speaker_assignments:
             speaker_team_map = {
                 int(spk_pk): team_pk
-                for spk_pk, team_pk in prev_log.speaker_assignments.items()
+                for spk_pk, team_pk in current_log.speaker_assignments.items()
             }
+        else:
+            prev_log = ShuffleLog.objects.filter(round=round.prev).order_by('-timestamp').first()
+            if prev_log and prev_log.speaker_assignments:
+                speaker_team_map = {
+                    int(spk_pk): team_pk
+                    for spk_pk, team_pk in prev_log.speaker_assignments.items()
+                }
 
     result = []
     for team in teams:

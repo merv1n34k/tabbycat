@@ -295,14 +295,17 @@ class StandardBreakGenerator(BaseBreakGenerator):
 class FightClubBreakGenerator(StandardBreakGenerator):
     """Break generator for Fight Club mode.
 
-    Ranks teams by the sum of their current speakers' individual scores,
-    since team composition changes every round and team-level standings
-    are meaningless.
+    Selects the top N individual speakers by speaker standings precedence,
+    then reassigns them onto the first break_size teams (by PK) so that
+    only breaking speakers end up on breaking team objects. Non-breaking
+    speakers are moved to the remaining teams.
     """
 
     key = "fight-club"
 
     def retrieve_standings(self):
+        from django.db import transaction
+
         from participants.models import Speaker
         from standings.base import Standings
         from standings.ranking import BasicRankAnnotator
@@ -310,36 +313,59 @@ class FightClubBreakGenerator(StandardBreakGenerator):
 
         tournament = self.category.tournament
         metrics = tournament.pref('speaker_standings_precedence')
+        speakers_per_team = tournament.pref('substantive_speakers')
+        num_breaking_speakers = self.break_size * speakers_per_team
 
         # Get the last preliminary round
         last_prelim = tournament.prelim_rounds().order_by('-seq').first()
         if last_prelim is None:
             raise BreakGeneratorError(_("There are no preliminary rounds."))
 
-        # Generate individual speaker standings
-        speaker_qs = Speaker.objects.filter(team__in=self.team_queryset)
+        # Rank ALL speakers individually
+        all_speakers = Speaker.objects.filter(team__in=self.team_queryset)
         generator = SpeakerStandingsGenerator(metrics, ('rank',))
-        speaker_standings = generator.generate(speaker_qs, round=last_prelim)
+        speaker_standings = generator.generate(all_speakers, round=last_prelim)
+        all_speaker_infos = list(speaker_standings)
 
-        # Build lookup: speaker pk -> first metric value
+        # Select top N breaking speakers
+        breaking_speaker_infos = all_speaker_infos[:num_breaking_speakers]
+        non_breaking_speaker_infos = all_speaker_infos[num_breaking_speakers:]
+
+        # Sort teams by PK: first break_size = "break teams", rest = "other teams"
+        all_teams = list(self.team_queryset.order_by('pk'))
+        break_teams = all_teams[:self.break_size]
+        other_teams = all_teams[self.break_size:]
+
+        # Reassign speakers to team objects
         first_metric_key = metrics[0]
         speaker_scores = {}
-        for info in speaker_standings:
+        for info in all_speaker_infos:
             speaker_scores[info.speaker.pk] = info.metrics.get(first_metric_key, 0) or 0
 
-        # For each team, sum its current speakers' scores
-        team_scores = {}
-        for team in self.team_queryset:
-            team_speaker_pks = Speaker.objects.filter(team=team).values_list('pk', flat=True)
-            team_scores[team] = sum(speaker_scores.get(pk, 0) for pk in team_speaker_pks)
+        with transaction.atomic():
+            for i, info in enumerate(breaking_speaker_infos):
+                team_idx = i // speakers_per_team
+                if team_idx < len(break_teams):
+                    Speaker.objects.filter(pk=info.speaker.pk).update(team=break_teams[team_idx])
 
-        # Build a Standings object for teams, sorted by speaker total
-        standings = Standings(self.team_queryset)
+            for i, info in enumerate(non_breaking_speaker_infos):
+                team_idx = i // speakers_per_team
+                if team_idx < len(other_teams):
+                    Speaker.objects.filter(pk=info.speaker.pk).update(team=other_teams[team_idx])
+
+        # Build team standings for break teams only
+        team_scores = {}
+        for idx, team in enumerate(break_teams):
+            start = idx * speakers_per_team
+            end = start + speakers_per_team
+            team_spk_infos = breaking_speaker_infos[start:end]
+            team_scores[team] = sum(speaker_scores.get(info.speaker.pk, 0) for info in team_spk_infos)
+
+        standings = Standings(break_teams)
         standings.record_added_metric(
             'speaker_total', _("Speaker total"), _("Spk"), None, False,
         )
-
-        for team in self.team_queryset:
+        for team in break_teams:
             standings.add_metric(team, 'speaker_total', team_scores[team])
 
         standings.sort(['speaker_total'])

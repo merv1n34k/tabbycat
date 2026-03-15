@@ -65,12 +65,40 @@ class BaseBreakingTeamsView(SingleObjectFromTournamentMixin, VueTableTemplateVie
 
     def get_table(self):
         self.standings = self.get_standings()
+        if self.object.rule == 'fight-club':
+            return self._get_fight_club_table()
         table = TabbycatTableBuilder(view=self, title=escape(self.object.name), sort_key='Rk')
         table.add_ranking_columns(self.standings)
         table.add_column({'title': _("Break"), 'key': 'break'},
                          [tsi.break_rank for tsi in self.standings])
         table.add_team_columns([tsi.team for tsi in self.standings])
         table.add_metric_columns(self.standings)
+        return table
+
+    def _get_fight_club_table(self):
+        from participants.models import Speaker
+        from standings.speakers import SpeakerStandingsGenerator
+
+        tournament = self.object.tournament
+        metrics = tournament.pref('speaker_standings_precedence')
+        last_prelim = tournament.prelim_rounds().order_by('-seq').first()
+
+        # Get speakers on breaking teams only
+        breaking_teams = [tsi.team for tsi in self.standings
+                          if isinstance(tsi.break_rank, int)]
+        speakers = Speaker.objects.filter(
+            team__in=breaking_teams,
+        ).select_related('team', 'team__institution')
+
+        generator = SpeakerStandingsGenerator(metrics, ('rank',))
+        speaker_standings = generator.generate(speakers, round=last_prelim)
+        speaker_list = list(speaker_standings)
+
+        table = TabbycatTableBuilder(view=self, title=escape(self.object.name), sort_key='Rk')
+        table.add_ranking_columns(speaker_standings)
+        table.add_speaker_columns([info.speaker for info in speaker_list])
+        table.add_team_columns([info.speaker.team for info in speaker_list])
+        table.add_metric_columns(speaker_standings)
         return table
 
     def get_page_title(self):
@@ -141,6 +169,8 @@ class BreakingTeamsFormView(GenerateBreakMixin, LogActionMixin, AdministratorMix
                 rankings=BreakGenerator(self.object).rankings)
 
     def get_table(self):
+        if self.object.rule == 'fight-club':
+            return super().get_table()  # speaker-based table, no remark columns
         table = super().get_table()  # as for public view, but add some more columns
         table.add_column(
             {'key': 'eligible-for', 'title': _("Eligible for")},

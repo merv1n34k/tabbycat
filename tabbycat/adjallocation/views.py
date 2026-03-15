@@ -106,7 +106,8 @@ class EditDebateAdjudicatorsView(BaseEditDebateOrPanelAdjudicatorsView):
     def debates_or_panels_factory(self, debates):
         return EditDebateAdjsDebateSerializer(
             debates, many=True, context={'sides': self.tournament.sides,
-                                         'round': self.round})
+                                         'round': self.round,
+                                         'fight_club_mode': self.tournament.pref('fight_club_mode')})
 
 
 class MultiRoundEditDebateAdjudicatorsView(BaseEditDebateOrPanelAdjudicatorsView):
@@ -120,7 +121,8 @@ class MultiRoundEditDebateAdjudicatorsView(BaseEditDebateOrPanelAdjudicatorsView
     def debates_or_panels_factory(self, debates):
         return EditDebateAdjsDebateSerializer(
             debates, many=True, context={'sides': self.tournament.sides,
-                                         'round': self.round})
+                                         'round': self.round,
+                                         'fight_club_mode': self.tournament.pref('fight_club_mode')})
 
     def get_draw_or_panels_objects(self):
         """Include debates from all current elimination rounds (one per break category)."""

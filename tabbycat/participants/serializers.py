@@ -41,6 +41,24 @@ class TeamSerializer(serializers.ModelSerializer):
     speakers = SpeakerSerializer(read_only=True, many=True)
     points = serializers.SerializerMethodField(read_only=True)
     break_categories = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
+    short_name = serializers.SerializerMethodField(read_only=True)
+    long_name = serializers.SerializerMethodField(read_only=True)
+
+    def _fight_club_name(self, obj):
+        speakers = getattr(obj, '_prefetched_objects_cache', {}).get('speaker_set')
+        if speakers is None:
+            speakers = obj.speaker_set.all()
+        return " & ".join(s.name for s in speakers) if speakers else obj.short_name
+
+    def get_short_name(self, obj):
+        if self.context.get('fight_club_mode'):
+            return self._fight_club_name(obj)
+        return obj.short_name
+
+    def get_long_name(self, obj):
+        if self.context.get('fight_club_mode'):
+            return self._fight_club_name(obj)
+        return obj.long_name
 
     def get_points(self, obj):
         return obj.points_count

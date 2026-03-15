@@ -251,7 +251,8 @@ def perform_speaker_shuffle(round):
         )
 
     # Update team names to reflect new speaker assignments
-    for team in available_teams:
+    # Re-fetch teams so speaker_set.all() sees the updated FK assignments
+    for team in Team.objects.filter(pk__in=[t.pk for t in available_teams]):
         team.save()
 
     logger.info("Shuffle complete for %s: %d speakers across %d teams",

@@ -60,12 +60,31 @@ def _get_available_teams(round):
     )
 
 
-def _get_speakers_for_teams(teams):
-    """Return speakers belonging to the given teams, ordered by team."""
+def _get_speakers_for_teams(teams, round=None):
+    """Return speakers belonging to the given teams, ordered by team.
+
+    For subsequent break rounds, narrows to only speakers who were on a
+    winning debate-team in the previous break round (i.e. speakers who
+    actually advanced).
+    """
     team_ids = [t.pk for t in teams]
-    return list(
-        Speaker.objects.filter(team_id__in=team_ids).select_related('team').order_by('pk')
-    )
+    qs = Speaker.objects.filter(team_id__in=team_ids).select_related('team')
+
+    if round is not None and round.is_break_round and round.prev is not None and round.prev.is_break_round:
+        from results.models import SpeakerScore, TeamScore
+        # Speaker PKs that spoke in the previous break round on a winning side
+        winning_dt_ids = TeamScore.objects.filter(
+            ballot_submission__confirmed=True,
+            debate_team__debate__round=round.prev,
+            win=True,
+        ).values_list('debate_team_id', flat=True)
+        advancing_speaker_ids = SpeakerScore.objects.filter(
+            ballot_submission__confirmed=True,
+            debate_team__in=winning_dt_ids,
+        ).values_list('speaker_id', flat=True)
+        qs = qs.filter(pk__in=advancing_speaker_ids)
+
+    return list(qs.order_by('pk'))
 
 
 def _load_pair_history(tournament):
@@ -175,7 +194,7 @@ def perform_speaker_shuffle(round):
     substantive_speakers = tournament.pref('substantive_speakers')
 
     available_teams = _get_available_teams(round)
-    speakers = _get_speakers_for_teams(available_teams)
+    speakers = _get_speakers_for_teams(available_teams, round=round)
 
     num_teams = len(available_teams)
     num_speakers = len(speakers)

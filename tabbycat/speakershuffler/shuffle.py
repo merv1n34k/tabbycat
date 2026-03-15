@@ -18,7 +18,6 @@ from standings.speakers import SpeakerStandingsGenerator
 
 from .models import ShuffleLog, SpeakerConflict, SpeakerPairHistory
 from .pairing import minimum_cost_matching
-from .team_names import generate_team_names
 
 logger = logging.getLogger(__name__)
 
@@ -151,19 +150,10 @@ def _rank_speakers(tournament, round, speakers):
 
 
 def _rename_teams(teams):
-    """Assign new character-pair names to teams for this round."""
-    # Collect previously used names in this tournament to avoid repeats
-    tournament = teams[0].tournament if teams else None
-    used = set()
-    if tournament:
-        used = set(
-            Team.objects.filter(tournament=tournament)
-            .exclude(pk__in=[t.pk for t in teams])
-            .values_list('reference', flat=True)
-        )
-
-    new_names = generate_team_names(len(teams), used_names=used)
-    for team, name in zip(teams, new_names):
+    """Rename teams to their current speakers' names, e.g. "Alice & Bob"."""
+    for team in teams:
+        speakers = Speaker.objects.filter(team=team).order_by('pk')
+        name = " & ".join(s.name for s in speakers)
         team.reference = name
         team.short_reference = name[:35]
         team.use_institution_prefix = False

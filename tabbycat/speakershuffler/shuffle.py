@@ -250,10 +250,6 @@ def perform_speaker_shuffle(round):
             speaker_assignments=log_data,
         )
 
-    # Update team names to reflect new speaker assignments
-    for team in available_teams:
-        team.save()
-
     logger.info("Shuffle complete for %s: %d speakers across %d teams",
                 round, len(assignments), num_teams)
 

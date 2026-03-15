@@ -311,13 +311,6 @@ class Team(models.Model):
         return "[{}] {}".format(self.tournament.slug, self.short_name)
 
     def _construct_short_name(self):
-        try:
-            if self.tournament.pref('fight_club_mode'):
-                speakers = list(self.speaker_set.all())
-                if speakers:
-                    return " & ".join(s.name for s in speakers)
-        except Exception:
-            pass
         institution = self.institution
         reference = self.short_reference or self.reference
         if self.use_institution_prefix and institution is not None:
@@ -329,11 +322,6 @@ class Team(models.Model):
             return str(reference)[:20+1+35]
 
     def _construct_long_name(self):
-        try:
-            if self.tournament.pref('fight_club_mode'):
-                return self._construct_short_name()
-        except Exception:
-            pass
         institution = self.institution
         if self.use_institution_prefix and institution is not None:
             long_name = institution.name

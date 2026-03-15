@@ -27,7 +27,19 @@ CONFLICT_PENALTY = 1_000_000.0
 
 
 def _get_available_teams(round):
-    """Return teams that are marked available for this round."""
+    """Return teams that are marked available for this round.
+
+    For elimination rounds, uses the breaking teams from the round's break
+    category instead of RoundAvailability (which isn't populated for elim rounds).
+    """
+    if round.is_break_round and round.break_category is not None:
+        return list(
+            Team.objects.filter(
+                breakingteam__break_category=round.break_category,
+                breakingteam__break_rank__isnull=False,
+            ).order_by('pk')
+        )
+
     ct = ContentType.objects.get_for_model(Team)
     available_ids = RoundAvailability.objects.filter(
         content_type=ct, round=round,

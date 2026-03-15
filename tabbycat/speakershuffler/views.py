@@ -99,7 +99,8 @@ class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
         context['speaker_points_json'] = json.dumps(speaker_points)
 
         # Compute placement-weighted speaker scores
-        COEFFICIENTS = {3: 1.06, 2: 1.04, 1: 1.02, 0: 1.0}
+        from standings.speakers import PlacementWeightedScoreMetricAnnotator
+        COEFFICIENTS = PlacementWeightedScoreMetricAnnotator.COEFFICIENTS
         speaker_weighted_scores = {}
         if current_seq > 1:
             ss_rows = list(SpeakerScore.objects.filter(
@@ -214,7 +215,8 @@ class ShuffleHistoryView(AdministratorMixin, RoundMixin, TemplateView):
         # Compute per-speaker cumulative totals and weighted scores up to each round
         # We need scores for all rounds that had a shuffle log
         round_seqs = sorted({log.round.seq for log in logs})
-        COEFFICIENTS = {3: 1.06, 2: 1.04, 1: 1.02, 0: 1.0}
+        from standings.speakers import PlacementWeightedScoreMetricAnnotator
+        COEFFICIENTS = PlacementWeightedScoreMetricAnnotator.COEFFICIENTS
 
         # Pre-compute scores per (speaker_id, round_seq_cutoff)
         # Query all relevant SpeakerScore and TeamScore rows once

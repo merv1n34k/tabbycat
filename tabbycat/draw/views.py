@@ -960,13 +960,11 @@ class EditDebateTeamsView(DebateDragAndDropMixin, AdministratorMixin, TemplateVi
         teams = Team.objects.filter(tournament=self.tournament).prefetch_related('speaker_set')
         teams = annotate_availability(teams, self.round)
         populate_win_counts(teams)
-        context = {'fight_club_mode': self.tournament.pref('fight_club_mode')}
-        serialized_teams = EditDebateTeamsTeamSerializer(teams, many=True, context=context)
+        serialized_teams = EditDebateTeamsTeamSerializer(teams, many=True)
         return self.json_render(serialized_teams.data)
 
     def debates_or_panels_factory(self, debates):
         return EditDebateTeamsDebateSerializer(
             debates, many=True, context={
                 'sides': self.tournament.sides,
-                'fight_club_mode': self.tournament.pref('fight_club_mode'),
             })

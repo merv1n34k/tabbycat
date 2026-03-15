@@ -367,55 +367,74 @@ class FeedbackFromAdjudicatorView(FeedbackFromSourceView):
 
 class BaseAddFeedbackIndexView(TournamentMixin, VueTableTemplateView):
 
-    def _build_fight_club_team_names(self, tournament):
-        """Build {team_pk: {round_abbr: name}} from ShuffleLog for all rounds."""
+    def _build_fight_club_team_table(self, table, tournament):
+        """Build team rows: one row per team per released round, showing
+        that round's team name. Only includes released rounds."""
         from speakershuffler.models import ShuffleLog
-        team_round_names = {}
+        from tournaments.models import Round
+
+        # Only released rounds
+        released_rounds = tournament.round_set.filter(
+            draw_status=Round.Status.RELEASED,
+            stage=Round.Stage.PRELIMINARY,
+            silent=False,
+        ).order_by('seq')
+
+        rows = []
         for log in ShuffleLog.objects.filter(
-            round__tournament=tournament,
+            round__in=released_rounds,
         ).select_related('round').order_by('round__seq'):
             if not log.team_names:
                 continue
             for team_pk_str, name in log.team_names.items():
                 team_pk = int(team_pk_str)
-                team_round_names.setdefault(team_pk, []).append(
-                    (log.round.abbreviation, name),
-                )
-        return team_round_names
+                rows.append({
+                    'round_abbr': log.round.abbreviation,
+                    'name': name,
+                    'team_pk': team_pk,
+                })
+
+        team_data = []
+        round_data = []
+        for row in rows:
+            team_data.append({
+                'text': row['name'],
+                'link': self.get_from_team_link_by_pk(row['team_pk']),
+            })
+            round_data.append(row['round_abbr'])
+
+        table.add_column({'key': 'team', 'title': _("Team")}, team_data)
+        table.add_column({'key': 'round', 'title': _("Round")}, round_data)
+
+    def get_from_team_link_by_pk(self, team_pk):
+        """Default: delegate to get_from_team_link with a stub object."""
+        class _Stub:
+            id = team_pk
+        return self.get_from_team_link(_Stub())
 
     def get_tables(self):
         tournament = self.tournament
 
         use_code_names = use_team_code_names_data_entry(self.tournament, self.tabroom)
 
-        # In Fight Club mode, show all historical names so people can find their team
-        fight_club_names = {}
-        if tournament.pref('fight_club_mode'):
-            fight_club_names = self._build_fight_club_team_names(tournament)
-
         teams_table = TabbycatTableBuilder(view=self, sort_key="team", title=_("A Team"))
-        add_link_data = []
-        for team in tournament.team_set.all():
-            base_name = conditional_escape(team_name_for_data_entry(team, use_code_names))
-            if team.pk in fight_club_names:
-                history = fight_club_names[team.pk]
-                parts = [f"{abbr}: {name}" for abbr, name in history]
-                text = " / ".join(parts)
-            else:
-                text = base_name
-            add_link_data.append({
-                'text': text,
-                'link': self.get_from_team_link(team),
-            })
-        header = {'key': 'team', 'title': _("Team")}
-        teams_table.add_column(header, add_link_data)
 
-        if tournament.pref('show_team_institutions'):
-            teams_table.add_column({
-                'key': 'institution',
-                'icon': 'home',
-                'tooltip': _("Institution"),
-            }, [escape(team.institution.code) if team.institution else TabbycatTableBuilder.BLANK_TEXT for team in tournament.team_set.all()])
+        if tournament.pref('fight_club_mode'):
+            self._build_fight_club_team_table(teams_table, tournament)
+        else:
+            add_link_data = [{
+                'text': conditional_escape(team_name_for_data_entry(team, use_code_names)),
+                'link': self.get_from_team_link(team),
+            } for team in tournament.team_set.all()]
+            header = {'key': 'team', 'title': _("Team")}
+            teams_table.add_column(header, add_link_data)
+
+            if tournament.pref('show_team_institutions'):
+                teams_table.add_column({
+                    'key': 'institution',
+                    'icon': 'home',
+                    'tooltip': _("Institution"),
+                }, [escape(team.institution.code) if team.institution else TabbycatTableBuilder.BLANK_TEXT for team in tournament.team_set.all()])
 
         adjs_table = TabbycatTableBuilder(view=self, sort_key="adjudicator", title=_("An Adjudicator"))
         adjudicators = tournament.adjudicator_set.all()

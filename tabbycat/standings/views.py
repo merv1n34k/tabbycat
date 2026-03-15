@@ -600,42 +600,42 @@ class PublicCurrentTeamStandingsView(PublicTournamentPageMixin, VueTableTemplate
         header = {'key': key, 'tooltip': title, 'icon': 'bar-chart'}
 
         table = TabbycatTableBuilder(view=self, sort_order='desc')
-        table.add_team_columns(teams)
-        table.add_column(header, [team.points for team in teams])
 
         if self.tournament.pref('fight_club_mode'):
-            self._add_results_with_shuffle_names(table, teams, rounds)
+            self._add_fight_club_team_column(table, teams, rounds)
         else:
-            table.add_team_results_columns(teams, rounds)
+            table.add_team_columns(teams)
+
+        table.add_column(header, [team.points for team in teams])
+        table.add_team_results_columns(teams, rounds)
 
         return table
 
-    def _add_results_with_shuffle_names(self, table, teams, rounds):
-        """Add per-round result columns with historical team names as subtext."""
+    def _add_fight_club_team_column(self, table, teams, rounds):
+        """Replace team column with historical names from completed rounds only.
+        Never reveals current/unreleased team compositions."""
         from speakershuffler.models import ShuffleLog
 
-        # Build {round_id: {team_pk: name}}
-        round_team_names = {}
+        # Only load names from rounds already in the standings (completed/released)
+        round_ids = [r.pk for r in rounds]
+        team_history = {}
         for log in ShuffleLog.objects.filter(
-            round__in=rounds,
-        ).select_related('round'):
+            round_id__in=round_ids,
+        ).select_related('round').order_by('round__seq'):
             if not log.team_names:
                 continue
-            names = {int(k): v for k, v in log.team_names.items()}
-            round_team_names[log.round_id] = names
+            for team_pk_str, name in log.team_names.items():
+                team_pk = int(team_pk_str)
+                team_history.setdefault(team_pk, []).append(name)
 
-        for round_seq, round in enumerate(rounds):
-            names_for_round = round_team_names.get(round.pk, {})
-            results = []
-            for t in teams:
-                cell = table._result_cell(t.round_results[round_seq])
-                # Add historical team name as subtext
-                name = names_for_round.get(t.pk)
-                if name:
-                    cell['subtext'] = name
-                results.append(cell)
-            header = {'key': 'r%d' % round_seq, 'title': escape(round.abbreviation)}
-            table.add_column(header, results)
+        team_data = []
+        for team in teams:
+            names = team_history.get(team.pk, [])
+            text = " / ".join(names) if names else "?"
+            team_data.append({'text': text})
+
+        header = {'key': 'team', 'tooltip': _("Team"), 'icon': 'users'}
+        table.add_column(header, team_data)
 
 
 # ==============================================================================

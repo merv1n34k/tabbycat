@@ -602,9 +602,40 @@ class PublicCurrentTeamStandingsView(PublicTournamentPageMixin, VueTableTemplate
         table = TabbycatTableBuilder(view=self, sort_order='desc')
         table.add_team_columns(teams)
         table.add_column(header, [team.points for team in teams])
-        table.add_team_results_columns(teams, rounds)
+
+        if self.tournament.pref('fight_club_mode'):
+            self._add_results_with_shuffle_names(table, teams, rounds)
+        else:
+            table.add_team_results_columns(teams, rounds)
 
         return table
+
+    def _add_results_with_shuffle_names(self, table, teams, rounds):
+        """Add per-round result columns with historical team names as subtext."""
+        from speakershuffler.models import ShuffleLog
+
+        # Build {round_id: {team_pk: name}}
+        round_team_names = {}
+        for log in ShuffleLog.objects.filter(
+            round__in=rounds,
+        ).select_related('round'):
+            if not log.team_names:
+                continue
+            names = {int(k): v for k, v in log.team_names.items()}
+            round_team_names[log.round_id] = names
+
+        for round_seq, round in enumerate(rounds):
+            names_for_round = round_team_names.get(round.pk, {})
+            results = []
+            for t in teams:
+                cell = table._result_cell(t.round_results[round_seq])
+                # Add historical team name as subtext
+                name = names_for_round.get(t.pk)
+                if name:
+                    cell['subtext'] = name
+                results.append(cell)
+            header = {'key': 'r%d' % round_seq, 'title': escape(round.abbreviation)}
+            table.add_column(header, results)
 
 
 # ==============================================================================

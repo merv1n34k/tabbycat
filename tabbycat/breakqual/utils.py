@@ -23,7 +23,7 @@ def get_breaking_teams(category, prefetch=(), rankings=('rank',)):
     teams = category.breaking_teams.all().prefetch_related(*prefetch)
 
     if category.rule == 'fight-club':
-        standings = _generate_fight_club_standings(category, teams, rankings)
+        standings = _generate_fight_club_standings(category, teams)
     else:
         metrics = category.tournament.pref('team_standings_precedence')
         generator = TeamStandingsGenerator(metrics, rankings)
@@ -45,9 +45,9 @@ def get_breaking_teams(category, prefetch=(), rankings=('rank',)):
     return standings
 
 
-def _generate_fight_club_standings(category, teams, rankings):
+def _generate_fight_club_standings(category, teams):
     """Generate standings for Fight Club mode, ranking teams by sum of
-    their current speakers' individual scores."""
+    their current speakers' placement-weighted scores."""
     from participants.models import Speaker
     from standings.base import Standings
     from standings.ranking import BasicRankAnnotator

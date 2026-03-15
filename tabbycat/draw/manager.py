@@ -432,7 +432,6 @@ class FightClubDrawManager(BaseDrawManager):
 
         teams, byes = super().get_teams()
         tournament = self.round.tournament
-        speakers_per_team = tournament.pref('substantive_speakers')
 
         # Rank speakers by individual standings
         metrics = tournament.pref('speaker_standings_precedence')

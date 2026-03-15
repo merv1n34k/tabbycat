@@ -197,12 +197,6 @@ export default {
       if (ws == null) return null
       return Number.isInteger(ws) ? String(ws) : ws.toFixed(1)
     },
-    hasConflict(team) {
-      for (const speaker of team.speakers) {
-        if (this.speakerConflictData[speaker.id]) return true
-      }
-      return false
-    },
     onDragStart(event, speaker, team) {
       this.draggedSpeaker = speaker
       this.draggedFromTeam = team

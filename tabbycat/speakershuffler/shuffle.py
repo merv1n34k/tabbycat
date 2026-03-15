@@ -315,8 +315,9 @@ def get_current_shuffle_data(round):
     """Get the current speaker-team assignments for display in the edit UI.
     Returns a list of dicts: [{team: Team, speakers: [Speaker, ...]}]."""
     teams = _get_available_teams(round)
+    advancing_speakers = _get_speakers_for_teams(teams, round=round)
     result = []
     for team in teams:
-        speakers = list(Speaker.objects.filter(team=team).order_by('pk'))
+        speakers = [s for s in advancing_speakers if s.team_id == team.pk]
         result.append({'team': team, 'speakers': speakers})
     return result

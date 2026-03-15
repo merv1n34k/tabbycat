@@ -63,14 +63,12 @@ def _get_available_teams(round):
 def _get_speakers_for_teams(teams, round=None):
     """Return speakers belonging to the given teams, ordered by team.
 
-    For subsequent break rounds, narrows to only speakers who were on a
-    winning debate-team in the previous break round (i.e. speakers who
-    actually advanced).  Uses ShuffleLog as the primary source (since
-    SpeakerScores may not be populated), falling back to SpeakerScore.
+    For subsequent break rounds, returns only speakers who were on a
+    winning side in the previous break round — regardless of their
+    current team FK (which may be stale from an old shuffle).
+    Uses ShuffleLog as the primary source, falling back to SpeakerScore.
     """
-    team_ids = [t.pk for t in teams]
-    qs = Speaker.objects.filter(team_id__in=team_ids).select_related('team')
-
+    # For subsequent break rounds, ignore current FK and select by advancement
     if round is not None and round.is_break_round and round.prev is not None and round.prev.is_break_round:
         from results.models import TeamScore
         winning_team_ids = set(TeamScore.objects.filter(
@@ -79,30 +77,34 @@ def _get_speakers_for_teams(teams, round=None):
             win=True,
         ).values_list('debate_team__team_id', flat=True))
 
+        advancing_speaker_ids = None
         if winning_team_ids:
-            # Primary: use ShuffleLog to find which speakers were on winning teams
             prev_log = ShuffleLog.objects.filter(round=round.prev).order_by('-timestamp').first()
             if prev_log and prev_log.speaker_assignments:
                 advancing_speaker_ids = [
                     int(spk_pk) for spk_pk, team_pk in prev_log.speaker_assignments.items()
                     if team_pk in winning_team_ids
                 ]
-                qs = qs.filter(pk__in=advancing_speaker_ids)
             else:
-                # Fallback: use SpeakerScore records
                 from results.models import SpeakerScore
                 winning_dt_ids = TeamScore.objects.filter(
                     ballot_submission__confirmed=True,
                     debate_team__debate__round=round.prev,
                     win=True,
                 ).values_list('debate_team_id', flat=True)
-                advancing_speaker_ids = SpeakerScore.objects.filter(
+                advancing_speaker_ids = list(SpeakerScore.objects.filter(
                     ballot_submission__confirmed=True,
                     debate_team__in=winning_dt_ids,
-                ).values_list('speaker_id', flat=True)
-                qs = qs.filter(pk__in=advancing_speaker_ids)
+                ).values_list('speaker_id', flat=True))
 
-    return list(qs.order_by('pk'))
+        if advancing_speaker_ids:
+            return list(Speaker.objects.filter(pk__in=advancing_speaker_ids)
+                        .select_related('team').order_by('pk'))
+
+    # Default: speakers currently FK'd to the given teams
+    team_ids = [t.pk for t in teams]
+    return list(Speaker.objects.filter(team_id__in=team_ids)
+                .select_related('team').order_by('pk'))
 
 
 def _load_pair_history(tournament):

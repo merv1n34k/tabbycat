@@ -12,7 +12,7 @@ from django.views.generic.base import TemplateView, View
 
 from actionlog.mixins import LogActionMixin
 from actionlog.models import ActionLogEntry
-from participants.models import Speaker
+from participants.models import Speaker, Team
 from results.models import SpeakerScore, TeamScore
 from tournaments.mixins import RoundMixin, TournamentMixin
 from tournaments.models import Round
@@ -214,6 +214,11 @@ class SaveShuffleView(AdministratorMixin, RoundMixin, View):
                             round=self.round,
                         ))
                 SpeakerPairHistory.objects.bulk_create(history_rows)
+
+                # Update team names to reflect new speaker assignments
+                affected_team_ids = set(assignments.values())
+                for team in Team.objects.filter(pk__in=affected_team_ids):
+                    team.save()
 
             return JsonResponse({'status': 'ok'})
 

@@ -351,6 +351,15 @@ class FightClubBreakGenerator(StandardBreakGenerator):
                 if team_idx < len(other_teams):
                     Speaker.objects.filter(pk=info.speaker.pk).update(team=other_teams[team_idx])
 
+            # Rename all teams to reflect their new speakers
+            for team in all_teams:
+                speakers = Speaker.objects.filter(team=team).order_by('pk')
+                name = " & ".join(s.name for s in speakers)
+                team.reference = name
+                team.short_reference = name[:35]
+                team.use_institution_prefix = False
+                team.save()
+
         # Build team standings for break teams only
         team_scores = {}
         for idx, team in enumerate(break_teams):

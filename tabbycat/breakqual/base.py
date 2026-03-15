@@ -312,7 +312,6 @@ class FightClubBreakGenerator(StandardBreakGenerator):
         from standings.speakers import SpeakerStandingsGenerator
 
         tournament = self.category.tournament
-        metrics = tournament.pref('speaker_standings_precedence')
         speakers_per_team = tournament.pref('substantive_speakers')
         num_breaking_speakers = self.break_size * speakers_per_team
 
@@ -321,9 +320,9 @@ class FightClubBreakGenerator(StandardBreakGenerator):
         if last_prelim is None:
             raise BreakGeneratorError(_("There are no preliminary rounds."))
 
-        # Rank ALL speakers individually
+        # Rank ALL speakers by placement-weighted total (PW Tot)
         all_speakers = Speaker.objects.filter(team__in=self.team_queryset)
-        generator = SpeakerStandingsGenerator(metrics, ('rank',))
+        generator = SpeakerStandingsGenerator(('weighted_total',), ('rank',))
         speaker_standings = generator.generate(all_speakers, round=last_prelim)
         all_speaker_infos = list(speaker_standings)
 
@@ -337,10 +336,9 @@ class FightClubBreakGenerator(StandardBreakGenerator):
         other_teams = all_teams[self.break_size:]
 
         # Reassign speakers to team objects
-        first_metric_key = metrics[0]
         speaker_scores = {}
         for info in all_speaker_infos:
-            speaker_scores[info.speaker.pk] = info.metrics.get(first_metric_key, 0) or 0
+            speaker_scores[info.speaker.pk] = info.metrics.get('weighted_total', 0) or 0
 
         with transaction.atomic():
             for i, info in enumerate(breaking_speaker_infos):

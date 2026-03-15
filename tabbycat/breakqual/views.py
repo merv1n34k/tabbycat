@@ -80,7 +80,6 @@ class BaseBreakingTeamsView(SingleObjectFromTournamentMixin, VueTableTemplateVie
         from standings.speakers import SpeakerStandingsGenerator
 
         tournament = self.object.tournament
-        metrics = tournament.pref('speaker_standings_precedence')
         last_prelim = tournament.prelim_rounds().order_by('-seq').first()
 
         # Get speakers on breaking teams only
@@ -90,7 +89,7 @@ class BaseBreakingTeamsView(SingleObjectFromTournamentMixin, VueTableTemplateVie
             team__in=breaking_teams,
         ).select_related('team', 'team__institution')
 
-        generator = SpeakerStandingsGenerator(metrics, ('rank',))
+        generator = SpeakerStandingsGenerator(('weighted_total',), ('rank',))
         speaker_standings = generator.generate(speakers, round=last_prelim)
         speaker_list = list(speaker_standings)
 

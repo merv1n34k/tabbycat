@@ -54,17 +54,15 @@ def _generate_fight_club_standings(category, teams, rankings):
     from standings.speakers import SpeakerStandingsGenerator
 
     tournament = category.tournament
-    metrics = tournament.pref('speaker_standings_precedence')
     last_prelim = tournament.prelim_rounds().order_by('-seq').first()
 
     speaker_qs = Speaker.objects.filter(team__in=teams)
-    generator = SpeakerStandingsGenerator(metrics, ('rank',))
+    generator = SpeakerStandingsGenerator(('weighted_total',), ('rank',))
     speaker_standings = generator.generate(speaker_qs, round=last_prelim)
 
-    first_metric_key = metrics[0]
     speaker_scores = {}
     for info in speaker_standings:
-        speaker_scores[info.speaker.pk] = info.metrics.get(first_metric_key, 0) or 0
+        speaker_scores[info.speaker.pk] = info.metrics.get('weighted_total', 0) or 0
 
     team_scores = {}
     for team in teams:

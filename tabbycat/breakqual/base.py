@@ -307,9 +307,9 @@ class FightClubBreakGenerator(StandardBreakGenerator):
         from django.db import transaction
 
         from participants.models import Speaker
-        from standings.base import Standings
-        from standings.ranking import BasicRankAnnotator
         from standings.speakers import SpeakerStandingsGenerator
+
+        from .utils import build_fight_club_team_standings
 
         tournament = self.category.tournament
         speakers_per_team = tournament.pref('substantive_speakers')
@@ -359,14 +359,5 @@ class FightClubBreakGenerator(StandardBreakGenerator):
             team_spk_infos = breaking_speaker_infos[start:end]
             team_scores[team] = sum(speaker_scores.get(info.speaker.pk, 0) for info in team_spk_infos)
 
-        standings = Standings(break_teams)
-        standings.record_added_metric(
-            'speaker_total', _("Speaker total"), _("Spk"), None, False,
-        )
-        for team in break_teams:
-            standings.add_metric(team, 'speaker_total', team_scores[team])
-
-        standings.sort(['speaker_total'])
-        BasicRankAnnotator(['speaker_total']).run(standings)
-
+        standings = build_fight_club_team_standings(break_teams, team_scores)
         self.standings = list(standings)

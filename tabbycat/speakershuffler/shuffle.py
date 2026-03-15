@@ -30,14 +30,23 @@ def _get_available_teams(round):
 
     For elimination rounds, uses the breaking teams from the round's break
     category instead of RoundAvailability (which isn't populated for elim rounds).
+    For subsequent break rounds, narrows to only teams that won the previous round.
     """
     if round.is_break_round and round.break_category is not None:
-        return list(
-            Team.objects.filter(
-                breakingteam__break_category=round.break_category,
-                breakingteam__break_rank__isnull=False,
-            ).order_by('pk')
+        teams_qs = Team.objects.filter(
+            breakingteam__break_category=round.break_category,
+            breakingteam__break_rank__isnull=False,
         )
+        # For subsequent break rounds, keep only teams that won the previous round
+        if round.prev is not None and round.prev.is_break_round:
+            from results.models import TeamScore
+            winning_team_ids = TeamScore.objects.filter(
+                ballot_submission__confirmed=True,
+                debate_team__debate__round=round.prev,
+                win=True,
+            ).values_list('debate_team__team_id', flat=True)
+            teams_qs = teams_qs.filter(pk__in=winning_team_ids)
+        return list(teams_qs.order_by('pk'))
 
     ct = ContentType.objects.get_for_model(Team)
     available_ids = RoundAvailability.objects.filter(

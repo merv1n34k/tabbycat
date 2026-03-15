@@ -166,6 +166,8 @@ class PublicResultsForRoundView(RoundMixin, PublicTournamentPageMixin, VueTableT
     cache_timeout = settings.PUBLIC_SLOW_CACHE_TIMEOUT
 
     def get_table(self):
+        if self.tournament.pref('fight_club_mode'):
+            return self.get_table_by_debate()
         view_type = self.request.session.get('results_view', self.default_view)
         if view_type == 'debate':
             return self.get_table_by_debate()

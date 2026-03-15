@@ -2,6 +2,7 @@
 {% load debate_tags i18n %}
 
 {% block page-subnav-sections %}
+  {% if not pref.fight_club_mode %}
   <div class="btn-group">
     <a class="btn btn-outline-primary {% if view_type == 'team' %}active{% endif %}" href="?view=team">
       {% trans "View by Team" %}
@@ -10,5 +11,6 @@
       {% trans "View by Debate" %}
     </a>
   </div>
+  {% endif %}
   {{ block.super }}
 {% endblock %}

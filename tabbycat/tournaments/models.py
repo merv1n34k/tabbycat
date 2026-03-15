@@ -529,14 +529,13 @@ class Round(models.Model):
         for spk_pk_str, team_pk in log.speaker_assignments.items():
             team_to_speaker_pks.setdefault(team_pk, []).append(int(spk_pk_str))
 
-        # Historical team names: {team_pk: "name"}
-        team_names = {int(k): v for k, v in log.team_names.items()} if log.team_names else {}
-
         # Load all relevant speakers in one query
         all_spk_pks = [pk for pks in team_to_speaker_pks.values() for pk in pks]
         speakers_by_pk = {s.pk: s for s in Speaker.objects.filter(pk__in=all_spk_pks).order_by('name')}
 
-        # Replace the prefetch cache on each team
+        # Replace the prefetch cache on each team so that
+        # _fight_club_team_name() in the table builder renders the correct
+        # historical speaker names.
         for debate in debates:
             if not hasattr(debate, '_prefetched_objects_cache'):
                 continue
@@ -551,15 +550,6 @@ class Round(models.Model):
                 team._prefetched_objects_cache['speaker_set'] = historical_speakers
                 # Clear cached_property so it re-reads from prefetch cache
                 team.__dict__.pop('speakers', None)
-
-                # Patch team name to the historical name (in memory only)
-                if team.pk in team_names:
-                    historical_name = team_names[team.pk]
-                    team.reference = historical_name
-                    team.short_reference = historical_name[:35]
-                    # short_name/long_name are regular fields, must set explicitly
-                    team.short_name = team._construct_short_name()
-                    team.long_name = team._construct_long_name()
 
     # --------------------------------------------------------------------------
     # Convenience querysets

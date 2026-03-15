@@ -68,6 +68,26 @@ class ShuffleLog(models.Model):
         verbose_name_plural = _("shuffle logs")
         ordering = ['-timestamp']
 
+    def get_team_display_names(self, speaker_names=None):
+        """Derive team display names from speaker assignments.
+
+        Args:
+            speaker_names: optional {speaker_pk: name} dict to avoid DB queries.
+        Returns:
+            {team_pk (int): "Speaker1 & Speaker2"}
+        """
+        if speaker_names is None:
+            from participants.models import Speaker
+            spk_pks = [int(pk) for pk in self.speaker_assignments.keys()]
+            speaker_names = dict(Speaker.objects.filter(pk__in=spk_pks).values_list('pk', 'name'))
+
+        team_speakers = {}
+        for spk_pk_str, team_pk in self.speaker_assignments.items():
+            name = speaker_names.get(int(spk_pk_str), f"Speaker #{spk_pk_str}")
+            team_speakers.setdefault(int(team_pk), []).append(name)
+
+        return {team_pk: " & ".join(sorted(names)) for team_pk, names in team_speakers.items()}
+
     def __str__(self):
         return f"Shuffle for {self.round} at {self.timestamp}"
 

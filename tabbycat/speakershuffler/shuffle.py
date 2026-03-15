@@ -115,15 +115,12 @@ def _populate_round1_history(tournament):
     # ShuffleLog for round 1 so historical draw display works
     if not ShuffleLog.objects.filter(round=round1).exists():
         assignments = {}
-        team_names = {}
         for team in teams:
-            team_names[str(team.pk)] = team.short_name
             for s in Speaker.objects.filter(team=team):
                 assignments[str(s.pk)] = team.pk
         ShuffleLog.objects.create(
             round=round1,
             speaker_assignments=assignments,
-            team_names=team_names,
         )
 
 
@@ -247,13 +244,11 @@ def perform_speaker_shuffle(round):
             ))
         SpeakerPairHistory.objects.bulk_create(history_rows)
 
-        # Create audit log with team names
+        # Create audit log
         log_data = {str(spk_pk): team.pk for spk_pk, team in assignments.items()}
-        team_names = {str(t.pk): t.short_name for t in available_teams}
         ShuffleLog.objects.create(
             round=round,
             speaker_assignments=log_data,
-            team_names=team_names,
         )
 
     logger.info("Shuffle complete for %s: %d speakers across %d teams",

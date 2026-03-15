@@ -169,7 +169,10 @@ class SaveShuffleView(AdministratorMixin, RoundMixin, View):
                 # Update the shuffle log
                 log_data = {str(k): v for k, v in assignments.items()}
                 ShuffleLog.objects.filter(round=self.round).delete()
-                ShuffleLog.objects.create(round=self.round, speaker_assignments=log_data)
+                ShuffleLog.objects.create(
+                    round=self.round,
+                    speaker_assignments=log_data,
+                )
 
                 # Update pair history for this round
                 SpeakerPairHistory.objects.filter(round=self.round).delete()
@@ -207,10 +210,8 @@ class ShuffleHistoryView(AdministratorMixin, RoundMixin, TemplateView):
             round__tournament=self.tournament,
         ).select_related('round').order_by('round__seq', '-timestamp')
 
-        # Resolve speaker/team IDs to names for readable display
-        from participants.models import Team
+        # Resolve speaker IDs to names for readable display
         all_speakers = {s.pk: s.name for s in Speaker.objects.filter(team__tournament=self.tournament)}
-        all_teams = {t.pk: t.short_name for t in Team.objects.filter(tournament=self.tournament)}
 
         # Compute per-speaker cumulative totals and weighted scores up to each round
         # We need scores for all rounds that had a shuffle log
@@ -262,11 +263,12 @@ class ShuffleHistoryView(AdministratorMixin, RoundMixin, TemplateView):
         enriched_logs = []
         for log in logs:
             round_scores = scores_by_round.get(log.round.seq, {})
+            display_names = log.get_team_display_names(all_speakers)
             # Group speakers by team with scores
             team_assignments = {}
             for spk_id_str, team_id in log.speaker_assignments.items():
                 spk_id = int(spk_id_str)
-                team_name = all_teams.get(int(team_id), f"Team #{team_id}")
+                team_name = display_names.get(int(team_id), f"Team #{team_id}")
                 speaker_name = all_speakers.get(spk_id, f"Speaker #{spk_id_str}")
                 spk_scores = round_scores.get(spk_id, {})
                 team_assignments.setdefault(team_name, []).append({

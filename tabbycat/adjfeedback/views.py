@@ -384,10 +384,8 @@ class BaseAddFeedbackIndexView(TournamentMixin, VueTableTemplateView):
         for log in ShuffleLog.objects.filter(
             round__in=released_rounds,
         ).select_related('round').order_by('round__seq'):
-            if not log.team_names:
-                continue
-            for team_pk_str, name in log.team_names.items():
-                team_pk = int(team_pk_str)
+            display_names = log.get_team_display_names()
+            for team_pk, name in display_names.items():
                 rows.append({
                     'round_abbr': log.round.abbreviation,
                     'name': name,

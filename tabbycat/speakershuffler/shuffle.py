@@ -156,9 +156,8 @@ def perform_speaker_shuffle(round):
     2. Load pair history and personal conflicts
     3. Group into chunks of 8 (one BP room) and find optimal pairing
     4. Assign speakers to Team objects
-    5. Rename teams with character-pair names
-    6. Record pair history
-    7. Create audit log
+    5. Record pair history
+    6. Create audit log
 
     Raises DrawUserError if speaker count doesn't match team slots.
     """

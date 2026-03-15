@@ -306,7 +306,7 @@ class FightClubBreakGenerator(StandardBreakGenerator):
     def retrieve_standings(self):
         from django.db import transaction
 
-        from participants.models import Speaker, Team
+        from participants.models import Speaker
         from standings.speakers import SpeakerStandingsGenerator
 
         from .utils import build_fight_club_team_standings
@@ -352,8 +352,7 @@ class FightClubBreakGenerator(StandardBreakGenerator):
                     Speaker.objects.filter(pk=info.speaker.pk).update(team=other_teams[team_idx])
 
         # Update team names to reflect new speaker assignments
-        # Re-fetch teams so speaker_set.all() sees the updated FK assignments
-        for team in Team.objects.filter(pk__in=[t.pk for t in all_teams]):
+        for team in all_teams:
             team.save()
 
         # Build team standings for break teams only

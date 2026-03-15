@@ -26,6 +26,62 @@ from .shuffle import get_current_shuffle_data, perform_speaker_shuffle
 logger = logging.getLogger(__name__)
 
 
+def _load_speaker_score_data(tournament):
+    """Load SpeakerScore and TeamScore data for weighted score computation.
+
+    Returns (ss_rows, ts_lookup) where:
+    - ss_rows: list of (speaker_id, score, debate_team_id, ballot_submission_id, round_seq)
+    - ts_lookup: {(debate_team_id, ballot_submission_id): points}
+    """
+    ss_rows = list(SpeakerScore.objects.filter(
+        ballot_submission__confirmed=True,
+        debate_team__debate__round__tournament=tournament,
+        debate_team__debate__round__stage=Round.Stage.PRELIMINARY,
+        ghost=False,
+        position__lte=tournament.pref('substantive_speakers'),
+    ).values_list('speaker_id', 'score', 'debate_team_id', 'ballot_submission_id',
+                   'debate_team__debate__round__seq'))
+
+    dt_bs_pairs = {(dt_id, bs_id) for _, _, dt_id, bs_id, _ in ss_rows}
+    ts_lookup = {}
+    if dt_bs_pairs:
+        for dt_id, bs_id, points in TeamScore.objects.filter(
+            ballot_submission__confirmed=True,
+        ).values_list('debate_team_id', 'ballot_submission_id', 'points'):
+            if (dt_id, bs_id) in dt_bs_pairs:
+                ts_lookup[(dt_id, bs_id)] = points
+
+    return ss_rows, ts_lookup
+
+
+def _compute_weighted_scores(ss_rows, ts_lookup, before_seq):
+    """Compute placement-weighted scores for speeches before the given round seq.
+
+    Returns {speaker_id: {'total': float, 'weighted': float}}
+    """
+    from standings.speakers import PlacementWeightedScoreMetricAnnotator
+    COEFFICIENTS = PlacementWeightedScoreMetricAnnotator.COEFFICIENTS
+
+    totals = {}
+    weighted = {}
+    for speaker_id, score, dt_id, bs_id, rnd_seq in ss_rows:
+        if rnd_seq >= before_seq:
+            continue
+        score_f = float(score)
+        totals[speaker_id] = totals.get(speaker_id, 0) + score_f
+        points = ts_lookup.get((dt_id, bs_id), 0)
+        coeff = COEFFICIENTS.get(points, 1.0)
+        weighted[speaker_id] = weighted.get(speaker_id, 0) + score_f * coeff
+
+    return {
+        spk_id: {
+            'total': round(totals.get(spk_id, 0), 1),
+            'weighted': round(weighted.get(spk_id, 0), 1),
+        }
+        for spk_id in set(totals) | set(weighted)
+    }
+
+
 class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
     """Drag-and-drop UI for reviewing and manually adjusting shuffled teams."""
     template_name = 'edit_speaker_shuffle.html'
@@ -85,49 +141,16 @@ class EditSpeakerShuffleView(AdministratorMixin, RoundMixin, TemplateView):
             speaker_conflicts[key] = True
         context['speaker_conflicts_json'] = json.dumps(speaker_conflicts)
 
-        # Load speaker point totals from confirmed ballots in prior rounds
+        # Load speaker point totals and weighted scores from prior rounds
         speaker_points = {}
-        if current_seq > 1:
-            scores = SpeakerScore.objects.filter(
-                ballot_submission__confirmed=True,
-                debate_team__debate__round__tournament=self.tournament,
-                debate_team__debate__round__seq__lt=current_seq,
-                ghost=False,
-            ).values('speaker_id').annotate(total=Sum('score'))
-            for row in scores:
-                speaker_points[str(row['speaker_id'])] = float(row['total'])
-        context['speaker_points_json'] = json.dumps(speaker_points)
-
-        # Compute placement-weighted speaker scores
-        from standings.speakers import PlacementWeightedScoreMetricAnnotator
-        COEFFICIENTS = PlacementWeightedScoreMetricAnnotator.COEFFICIENTS
         speaker_weighted_scores = {}
         if current_seq > 1:
-            ss_rows = list(SpeakerScore.objects.filter(
-                ballot_submission__confirmed=True,
-                debate_team__debate__round__tournament=self.tournament,
-                debate_team__debate__round__seq__lt=current_seq,
-                ghost=False,
-                position__lte=self.tournament.pref('substantive_speakers'),
-            ).values_list('speaker_id', 'score', 'debate_team_id', 'ballot_submission_id'))
-
-            dt_bs_pairs = {(dt_id, bs_id) for _, _, dt_id, bs_id in ss_rows}
-            ts_lookup = {}
-            if dt_bs_pairs:
-                for dt_id, bs_id, points in TeamScore.objects.filter(
-                    ballot_submission__confirmed=True,
-                ).values_list('debate_team_id', 'ballot_submission_id', 'points'):
-                    if (dt_id, bs_id) in dt_bs_pairs:
-                        ts_lookup[(dt_id, bs_id)] = points
-
-            for speaker_id, score, dt_id, bs_id in ss_rows:
-                points = ts_lookup.get((dt_id, bs_id), 0)
-                coeff = COEFFICIENTS.get(points, 1.0)
-                speaker_weighted_scores[str(speaker_id)] = (
-                    speaker_weighted_scores.get(str(speaker_id), 0) + float(score) * coeff
-                )
-            # Round to 1 decimal
-            speaker_weighted_scores = {k: round(v, 1) for k, v in speaker_weighted_scores.items()}
+            ss_rows, ts_lookup = _load_speaker_score_data(self.tournament)
+            scores = _compute_weighted_scores(ss_rows, ts_lookup, current_seq)
+            for spk_id, data in scores.items():
+                speaker_points[str(spk_id)] = data['total']
+                speaker_weighted_scores[str(spk_id)] = data['weighted']
+        context['speaker_points_json'] = json.dumps(speaker_points)
         context['speaker_weighted_scores_json'] = json.dumps(speaker_weighted_scores)
 
         context['speakers_per_team'] = self.tournament.pref('substantive_speakers')
@@ -214,51 +237,12 @@ class ShuffleHistoryView(AdministratorMixin, RoundMixin, TemplateView):
         all_speakers = {s.pk: s.name for s in Speaker.objects.filter(team__tournament=self.tournament)}
 
         # Compute per-speaker cumulative totals and weighted scores up to each round
-        # We need scores for all rounds that had a shuffle log
         round_seqs = sorted({log.round.seq for log in logs})
-        from standings.speakers import PlacementWeightedScoreMetricAnnotator
-        COEFFICIENTS = PlacementWeightedScoreMetricAnnotator.COEFFICIENTS
-
-        # Pre-compute scores per (speaker_id, round_seq_cutoff)
-        # Query all relevant SpeakerScore and TeamScore rows once
-        ss_rows = list(SpeakerScore.objects.filter(
-            ballot_submission__confirmed=True,
-            debate_team__debate__round__tournament=self.tournament,
-            debate_team__debate__round__stage=Round.Stage.PRELIMINARY,
-            ghost=False,
-            position__lte=self.tournament.pref('substantive_speakers'),
-        ).values_list('speaker_id', 'score', 'debate_team_id', 'ballot_submission_id',
-                       'debate_team__debate__round__seq'))
-
-        dt_bs_pairs = {(dt_id, bs_id) for _, _, dt_id, bs_id, _ in ss_rows}
-        ts_lookup = {}
-        if dt_bs_pairs:
-            for dt_id, bs_id, points in TeamScore.objects.filter(
-                ballot_submission__confirmed=True,
-            ).values_list('debate_team_id', 'ballot_submission_id', 'points'):
-                if (dt_id, bs_id) in dt_bs_pairs:
-                    ts_lookup[(dt_id, bs_id)] = points
-
-        # Build {round_seq: {speaker_id: {'total': x, 'weighted': y}}}
-        scores_by_round = {}
-        for seq in round_seqs:
-            totals = {}
-            weighted = {}
-            for speaker_id, score, dt_id, bs_id, rnd_seq in ss_rows:
-                if rnd_seq >= seq:
-                    continue
-                score_f = float(score)
-                totals[speaker_id] = totals.get(speaker_id, 0) + score_f
-                points = ts_lookup.get((dt_id, bs_id), 0)
-                coeff = COEFFICIENTS.get(points, 1.0)
-                weighted[speaker_id] = weighted.get(speaker_id, 0) + score_f * coeff
-            scores_by_round[seq] = {
-                spk_id: {
-                    'total': round(totals.get(spk_id, 0), 1),
-                    'weighted': round(weighted.get(spk_id, 0), 1),
-                }
-                for spk_id in set(totals) | set(weighted)
-            }
+        ss_rows, ts_lookup = _load_speaker_score_data(self.tournament)
+        scores_by_round = {
+            seq: _compute_weighted_scores(ss_rows, ts_lookup, seq)
+            for seq in round_seqs
+        }
 
         enriched_logs = []
         for log in logs:

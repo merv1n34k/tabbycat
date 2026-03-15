@@ -298,6 +298,26 @@ def perform_speaker_shuffle(round):
             speaker_assignments=log_data,
         )
 
+    # For break rounds, move non-advancing speakers off the available teams
+    # so they don't pollute team names and speaker counts.
+    if round.is_break_round:
+        assigned_pks = set(assignments.keys())
+        available_team_ids = [t.pk for t in available_teams]
+        stale_speakers = Speaker.objects.filter(
+            team_id__in=available_team_ids,
+        ).exclude(pk__in=assigned_pks)
+        if stale_speakers.exists():
+            # Find non-available break teams to park them on
+            all_break_team_ids = set(Team.objects.filter(
+                breakingteam__break_category=round.break_category,
+                breakingteam__break_rank__isnull=False,
+            ).values_list('pk', flat=True))
+            other_team_ids = all_break_team_ids - set(available_team_ids)
+            if other_team_ids:
+                park_team_id = min(other_team_ids)
+                count = stale_speakers.update(team_id=park_team_id)
+                logger.info("Moved %d non-advancing speakers off available teams", count)
+
     logger.info("Shuffle complete for %s: %d speakers across %d teams",
                 round, len(assignments), num_teams)
 

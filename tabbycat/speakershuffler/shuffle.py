@@ -318,8 +318,23 @@ def get_current_shuffle_data(round):
     Returns a list of dicts: [{team: Team, speakers: [Speaker, ...]}]."""
     teams = _get_available_teams(round)
     advancing_speakers = _get_speakers_for_teams(teams, round=round)
+
+    # For subsequent break rounds, group speakers by their previous-round
+    # ShuffleLog assignment (current FK may be stale from old shuffles).
+    speaker_team_map = None
+    if round.is_break_round and round.prev is not None and round.prev.is_break_round:
+        prev_log = ShuffleLog.objects.filter(round=round.prev).order_by('-timestamp').first()
+        if prev_log and prev_log.speaker_assignments:
+            speaker_team_map = {
+                int(spk_pk): team_pk
+                for spk_pk, team_pk in prev_log.speaker_assignments.items()
+            }
+
     result = []
     for team in teams:
-        speakers = [s for s in advancing_speakers if s.team_id == team.pk]
+        if speaker_team_map:
+            speakers = [s for s in advancing_speakers if speaker_team_map.get(s.pk) == team.pk]
+        else:
+            speakers = [s for s in advancing_speakers if s.team_id == team.pk]
         result.append({'team': team, 'speakers': speakers})
     return result

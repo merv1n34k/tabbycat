@@ -560,6 +560,11 @@ class PublicBreakCategoryTabView(PublicTabMixin, BaseBreakCategoryStandingsView)
 class PublicCurrentTeamStandingsView(PublicTournamentPageMixin, VueTableTemplateView):
 
     public_page_preference = 'public_team_standings'
+
+    def is_page_enabled(self, tournament):
+        if tournament.pref('fight_club_mode'):
+            return False
+        return super().is_page_enabled(tournament)
     page_title = gettext_lazy("Current Team Standings")
     page_emoji = '🌟'
     cache_timeout = settings.PUBLIC_SLOW_CACHE_TIMEOUT
@@ -600,42 +605,11 @@ class PublicCurrentTeamStandingsView(PublicTournamentPageMixin, VueTableTemplate
         header = {'key': key, 'tooltip': title, 'icon': 'bar-chart'}
 
         table = TabbycatTableBuilder(view=self, sort_order='desc')
-
-        if self.tournament.pref('fight_club_mode'):
-            self._add_fight_club_team_column(table, teams, rounds)
-        else:
-            table.add_team_columns(teams)
-
+        table.add_team_columns(teams)
         table.add_column(header, [team.points for team in teams])
         table.add_team_results_columns(teams, rounds)
 
         return table
-
-    def _add_fight_club_team_column(self, table, teams, rounds):
-        """Replace team column with historical names from completed rounds only.
-        Never reveals current/unreleased team compositions."""
-        from speakershuffler.models import ShuffleLog
-
-        # Only load names from rounds already in the standings (completed/released)
-        round_ids = [r.pk for r in rounds]
-        team_history = {}
-        for log in ShuffleLog.objects.filter(
-            round_id__in=round_ids,
-        ).select_related('round').order_by('round__seq'):
-            if not log.team_names:
-                continue
-            for team_pk_str, name in log.team_names.items():
-                team_pk = int(team_pk_str)
-                team_history.setdefault(team_pk, []).append(name)
-
-        team_data = []
-        for team in teams:
-            names = team_history.get(team.pk, [])
-            text = " / ".join(names) if names else "?"
-            team_data.append({'text': text})
-
-        header = {'key': 'team', 'tooltip': _("Team"), 'icon': 'users'}
-        table.add_column(header, team_data)
 
 
 # ==============================================================================

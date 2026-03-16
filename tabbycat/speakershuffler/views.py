@@ -354,15 +354,34 @@ class GenerateSlidesView(AdministratorMixin, TournamentMixin, FormView):
         return kwargs
 
     def form_valid(self, form):
+        from pathlib import Path
+
         from .slides import generate_round_slides
 
         round_obj = form.cleaned_data['round']
-        photos_dir = form.cleaned_data['photos_dir']
-        template_path = form.cleaned_data['template_path']
+        photo_files = form.cleaned_data['photos']
+        template_file = form.cleaned_data['template_file']
 
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
-                slides = generate_round_slides(round_obj, photos_dir, template_path, tmpdir)
+                # Save uploaded photos to temp directory
+                photos_dir = Path(tmpdir) / 'photos'
+                photos_dir.mkdir()
+                for f in photo_files:
+                    name = Path(f.name).name
+                    dest = photos_dir / name
+                    with open(dest, 'wb') as out:
+                        for chunk in f.chunks():
+                            out.write(chunk)
+
+                # Save uploaded template
+                template_path = Path(tmpdir) / 'template.png'
+                with open(template_path, 'wb') as out:
+                    for chunk in template_file.chunks():
+                        out.write(chunk)
+
+                output_dir = Path(tmpdir) / 'output'
+                slides = generate_round_slides(round_obj, str(photos_dir), str(template_path), str(output_dir))
                 if not slides:
                     messages.error(self.request, _("No slides were generated — check that the round has debates."))
                     return self.form_invalid(form)

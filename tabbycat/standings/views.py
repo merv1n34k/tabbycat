@@ -570,6 +570,11 @@ class PublicCurrentTeamStandingsView(PublicTournamentPageMixin, VueTableTemplate
 
     public_page_preference = 'public_team_standings'
 
+    def is_page_enabled(self, tournament):
+        if tournament.pref('fight_club_mode'):
+            return False
+        return super().is_page_enabled(tournament)
+
     page_title = gettext_lazy("Current Team Standings")
     page_emoji = '🌟'
     cache_timeout = settings.PUBLIC_SLOW_CACHE_TIMEOUT

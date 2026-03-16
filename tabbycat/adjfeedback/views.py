@@ -219,6 +219,13 @@ class FeedbackMixin(TournamentMixin):
         populate_debate_adjudicators(feedbacks)
         populate_wins_for_debateteams([f.source_team for f in feedbacks if f.source_team is not None])
 
+        # In FC mode, patch source team names with historical names from the
+        # round the feedback was given (current speaker_set is wrong after
+        # break generation reassigns speakers).
+        if self.tournament.pref('fight_club_mode'):
+            from speakershuffler.feedback import patch_feedback_source_names
+            patch_feedback_source_names(feedbacks, self.tournament)
+
         # Can't prefetch an abstract model effectively; so get all answers...
         questions = list(self.tournament.adj_feedback_questions.prefetch_related('answer_set'))
         if self.only_comments:
@@ -253,8 +260,6 @@ class FeedbackMixin(TournamentMixin):
             'source_team__debate__round',
             'source_team__team',
             'source_team__team__tournament',
-        ).prefetch_related(
-            'source_team__team__speaker_set',
         )
 
 

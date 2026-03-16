@@ -518,6 +518,13 @@ class BaseEditBallotSetView(SingleObjectFromTournamentMixin, BaseBallotSetView):
         for rm in RoundMotion.objects.filter(round_id=self.debate.round_id):
             self.round_motions[rm.motion_id] = rm
 
+        # In Fight Club mode, speakers shuffle between teams each round.
+        # Patch the prefetched speaker_set so the form's speaker dropdowns
+        # show the speakers who actually debated in this round, not whoever
+        # the FK currently points to.
+        if self.tournament.pref('fight_club_mode'):
+            self.debate.round._patch_historical_speakers([self.debate])
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['result'] = DebateResult(self.ballotsub, tournament=self.tournament)

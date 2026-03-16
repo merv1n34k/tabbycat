@@ -45,16 +45,25 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
         if 'region' not in self.tournament.pref('reg_institution_fields'):
             self.fields.pop('region')
 
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        existing_institution = TournamentInstitution.objects.filter(tournament=self.tournament, institution__name__iexact=name).exists()
+        if existing_institution:
+            raise forms.ValidationError(_("An institution with this name is already registered for this tournament."))
+        return name
+
     class Meta:
         model = TournamentInstitution
         exclude = ('tournament', 'institution', 'teams_allocated', 'adjudicators_allocated')
 
     def save(self):
         self.cleaned_data.pop('key', None)
+        name = self.cleaned_data.pop('name')
+        code = self.cleaned_data.pop('code')
+        region = self.cleaned_data.pop('region', None)
         inst, created = Institution.objects.get_or_create(
-            name=self.cleaned_data.pop('name'),
-            code=self.cleaned_data.pop('code'),
-            region=self.cleaned_data.pop('region', None),
+            name=name,
+            defaults={'region': region, 'code': code},
         )
 
         obj = super().save(commit=False)

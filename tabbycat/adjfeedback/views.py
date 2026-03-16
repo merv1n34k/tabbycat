@@ -253,6 +253,8 @@ class FeedbackMixin(TournamentMixin):
             'source_team__debate__round',
             'source_team__team',
             'source_team__team__tournament',
+        ).prefetch_related(
+            'source_team__team__speaker_set',
         )
 
 
@@ -355,6 +357,9 @@ class FeedbackFromTeamView(FeedbackFromSourceView):
     source_name_attr = 'short_name'
     adjfeedback_filter_field = 'source_team__team'
     allow_null_tournament = False
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('speaker_set')
 
 
 class FeedbackFromAdjudicatorView(FeedbackFromSourceView):

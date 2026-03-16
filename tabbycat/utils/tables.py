@@ -4,10 +4,10 @@ import warnings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.humanize.templatetags.humanize import ordinal
 from django.db.models import Exists, OuterRef, Prefetch
-from django.template.loader import render_to_string
+from django.middleware.csrf import get_token
 from django.utils import timezone
 from django.utils.encoding import force_str
-from django.utils.html import escape
+from django.utils.html import escape, format_html
 from django.utils.safestring import SafeString
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
@@ -29,6 +29,16 @@ from .mixins import AdministratorMixin
 
 logger = logging.getLogger(__name__)
 _draw_flags_dict = dict(DRAW_FLAG_DESCRIPTIONS)
+
+_postpone_button_html = """
+<form method="POST" action="{}" style="display: inline;">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{}"/>
+    <button type="submit" class="btn btn-sm btn-success">
+        <div class="d-flex justify-content-center align-items-center">
+            <i data-feather="clock" style="height: 16px;width: 16px;margin-bottom: -2.5px;"></i>
+        </div>
+    </button>
+</form>"""
 
 
 def escape_if_unsafe(s):
@@ -1007,8 +1017,15 @@ class TabbycatTableBuilder(BaseTableBuilder):
 
         self.add_columns(results_header, results_data)
 
-    def add_debate_postponement_column(self, debates):
-        col_data = [render_to_string('debate_postponement_form.html', {'debate': d}) for d in debates]
+    def add_debate_postponement_column(self, debates, request):
+        csrf_token = get_token(request)
+        col_data = []
+        for debate in debates:
+            if debate.result_status == Debate.STATUS_POSTPONED:
+                col_data.append(format_html('<small>{}</small>', _("Postponed")))
+            else:
+                url = reverse_round('results-postpone-debate', debate.round, kwargs={'debate_id': debate.id})
+                col_data.append(format_html(_postpone_button_html, url, csrf_token))
         header = {'key': 'postpone', 'title': _("Postpone")}
         self.add_column(header, col_data)
 

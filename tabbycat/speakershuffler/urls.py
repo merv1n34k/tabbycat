@@ -20,4 +20,7 @@ urlpatterns = [
     path('conflicts/',
         views.SpeakerConflictsView.as_view(),
         name='speakershuffler-conflicts'),
+    path('slides/',
+        views.GenerateSlidesView.as_view(),
+        name='shuffler-slides-generate'),
 ]

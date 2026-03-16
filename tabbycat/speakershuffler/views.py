@@ -1,14 +1,18 @@
+import io
 import json
 import logging
+import tempfile
+import zipfile
 
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Sum
 from django.forms import ModelChoiceField
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.generic.base import TemplateView, View
+from django.views.generic.edit import FormView
 
 from actionlog.mixins import LogActionMixin
 from actionlog.models import ActionLogEntry
@@ -20,6 +24,7 @@ from utils.misc import redirect_tournament
 from utils.mixins import AdministratorMixin
 from utils.views import ModelFormSetView
 
+from .forms import GenerateSlidesForm
 from .models import ShuffleLog, SpeakerConflict, SpeakerPairHistory
 from .shuffle import get_current_shuffle_data, perform_speaker_shuffle
 
@@ -334,3 +339,46 @@ class SpeakerConflictsView(LogActionMixin, AdministratorMixin, TournamentMixin, 
         if "add_more" in self.request.POST:
             return redirect_tournament('speakershuffler-conflicts', self.tournament)
         return result
+
+
+class GenerateSlidesView(AdministratorMixin, TournamentMixin, FormView):
+    """Admin form to generate per-room PNG slides and download as ZIP."""
+    template_name = 'slides_generate.html'
+    form_class = GenerateSlidesForm
+    page_title = gettext_lazy("Generate Slides")
+    page_emoji = "🖼"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['tournament'] = self.tournament
+        return kwargs
+
+    def form_valid(self, form):
+        from .slides import generate_round_slides
+
+        round_obj = form.cleaned_data['round']
+        photos_dir = form.cleaned_data['photos_dir']
+        template_path = form.cleaned_data['template_path']
+
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                slides = generate_round_slides(round_obj, photos_dir, template_path, tmpdir)
+                if not slides:
+                    messages.error(self.request, _("No slides were generated — check that the round has debates."))
+                    return self.form_invalid(form)
+
+                buf = io.BytesIO()
+                with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    for slide_path in slides:
+                        zf.write(slide_path, slide_path.name)
+                buf.seek(0)
+
+                response = HttpResponse(buf.read(), content_type='application/zip')
+                filename = f"slides_{round_obj.abbreviation}.zip"
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return response
+
+        except Exception as e:
+            logger.exception("Error generating slides")
+            messages.error(self.request, _("Slide generation failed: %(error)s") % {'error': str(e)})
+            return self.form_invalid(form)

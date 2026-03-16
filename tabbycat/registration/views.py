@@ -620,6 +620,7 @@ class AdminEditInstitutionFormView(TournamentMixin, AdministratorMixin, FormView
         inst = t_inst.institution
         inst.name = inst_form.cleaned_data['name']
         inst.code = inst_form.cleaned_data['code']
+        inst.region = inst_form.cleaned_data.get('region', None)
         inst.save()
 
         if 'teams_requested' in inst_form.fields:

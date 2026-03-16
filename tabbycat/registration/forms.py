@@ -21,7 +21,7 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
     code = forms.CharField(max_length=institution_code.max_length, label=_("Institution abbreviation"), help_text=institution_code.help_text)
     region = forms.ModelChoiceField(
         queryset=Region.objects.all(),
-        label=institution_region.verbose_name,
+        label=_("Institution region"),
         help_text=institution_region.help_text,
     )
     key = forms.CharField(widget=forms.HiddenInput(), required=False)
@@ -107,6 +107,7 @@ class InstitutionEditForm(forms.Form):
         inst_initial = {
             'name': t_inst.institution.name,
             'code': t_inst.institution.code,
+            'region': t_inst.institution.region,
             **get_answers_initial(t_inst),
         }
 

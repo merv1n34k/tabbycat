@@ -369,12 +369,12 @@ class BaseAddFeedbackIndexView(TournamentMixin, VueTableTemplateView):
 
     def _build_fight_club_team_table(self, table, tournament):
         from speakershuffler.feedback import build_fight_club_team_table
-        build_fight_club_team_table(table, tournament, self._get_from_team_link_by_pk)
+        build_fight_club_team_table(table, tournament, self._fc_team_link)
 
-    def _get_from_team_link_by_pk(self, team_pk):
+    def _fc_team_link(self, team_pk, round_id):
         class _Stub:
             id = team_pk
-        return self.get_from_team_link(_Stub())
+        return self.get_from_team_link(_Stub()) + '?round=%d' % round_id
 
     def get_tables(self):
         tournament = self.tournament
@@ -479,8 +479,12 @@ class BaseAddFeedbackView(LogActionMixin, SingleObjectFromTournamentMixin, FormV
     action_log_content_object_attr = 'adj_feedback'
 
     def get_form_class(self):
+        kwargs = dict(self.feedback_form_class_kwargs)
+        fc_round_id = self.request.GET.get('round')
+        if fc_round_id:
+            kwargs['fc_round_id'] = int(fc_round_id)
         return make_feedback_form_class(self.object, self.tournament,
-                self.get_submitter_fields(), **self.feedback_form_class_kwargs)
+                self.get_submitter_fields(), **kwargs)
 
     def form_valid(self, form):
         self.adj_feedback = form.save()
@@ -503,10 +507,19 @@ class BaseAddFeedbackView(LogActionMixin, SingleObjectFromTournamentMixin, FormV
         elif isinstance(self.object, Speaker):
             self.source_name = self.get_team_short_name(self.object.team)
         elif isinstance(self.object, Team):
-            self.source_name = self.get_team_short_name(self.object)
+            self.source_name = self._fc_source_name() or self.get_team_short_name(self.object)
         else:
             logger.error("self.object was neither an Adjudicator nor a Speaker")
             self.source_name = "<ERROR>"
+
+    def _fc_source_name(self):
+        """Return the historical FC team name for the requested round, or None."""
+        fc_round_id = self.request.GET.get('round')
+        if not fc_round_id or not self.tournament.pref('fight_club_mode'):
+            return None
+        from speakershuffler.feedback import get_historical_team_names
+        names = get_historical_team_names(self.tournament, self.object.pk)
+        return names.get(int(fc_round_id))
 
     def get(self, request, *args, **kwargs):
         self._populate_source()

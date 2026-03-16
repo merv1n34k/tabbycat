@@ -119,12 +119,13 @@ def make_feedback_form_class(source, tournament, *args, **kwargs):
         arguments to Submission.
     'confirm_on_submit' is a bool, and indicates that this feedback should be
         as confirmed and all others discarded."""
+    fc_round_id = kwargs.pop('fc_round_id', None)
     if isinstance(source, Adjudicator):
         return make_feedback_form_class_for_adj(source, tournament, *args, **kwargs)
     elif isinstance(source, Speaker):
-        return make_feedback_form_class_for_team(source.team, tournament, *args, **kwargs)
+        return make_feedback_form_class_for_team(source.team, tournament, *args, fc_round_id=fc_round_id, **kwargs)
     elif isinstance(source, Team):
-        return make_feedback_form_class_for_team(source, tournament, *args, **kwargs)
+        return make_feedback_form_class_for_team(source, tournament, *args, fc_round_id=fc_round_id, **kwargs)
     else:
         raise TypeError('source must be Adjudicator, Speaker, or Team: %r' % source)
 
@@ -194,7 +195,8 @@ def make_feedback_form_class_for_adj(source, tournament, submission_fields, conf
 
 def make_feedback_form_class_for_team(source, tournament, submission_fields, confirm_on_submit=False,
                                       enforce_required=True, include_unreleased_draws=False,
-                                      use_tournament_password=False, ignored_option=False):
+                                      use_tournament_password=False, ignored_option=False,
+                                      fc_round_id=None):
     """Constructs a FeedbackForm class specific to the given source team.
     Parameters are as for make_feedback_form_class."""
 
@@ -235,6 +237,10 @@ def make_feedback_form_class_for_team(source, tournament, submission_fields, con
         debates = debates.filter(round__draw_status__in=[Round.Status.CONFIRMED, Round.Status.RELEASED])
     else:
         debates = debates.filter(round__draw_status=Round.Status.RELEASED)
+
+    # In Fight Club mode with a specific round, show only that round
+    if fc_round_id:
+        debates = debates.filter(round_id=fc_round_id)
 
     # In Fight Club mode, load historical team names from ShuffleLog
     historical_team_names = {}

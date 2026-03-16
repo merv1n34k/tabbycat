@@ -9,7 +9,10 @@ from .models import ShuffleLog
 
 def build_fight_club_team_table(table, tournament, get_link_fn):
     """Build team rows: one row per team per released round, showing
-    that round's team name. Only includes released rounds."""
+    that round's team name. Only includes released rounds.
+
+    ``get_link_fn(team_pk, round_id)`` must return a URL string.
+    """
 
     # Only released rounds
     released_rounds = tournament.round_set.filter(
@@ -26,6 +29,7 @@ def build_fight_club_team_table(table, tournament, get_link_fn):
         for team_pk, name in display_names.items():
             rows.append({
                 'round_abbr': log.round.abbreviation,
+                'round_id': log.round_id,
                 'name': name,
                 'team_pk': team_pk,
             })
@@ -35,7 +39,7 @@ def build_fight_club_team_table(table, tournament, get_link_fn):
     for row in rows:
         team_data.append({
             'text': row['name'],
-            'link': get_link_fn(row['team_pk']),
+            'link': get_link_fn(row['team_pk'], row['round_id']),
         })
         round_data.append(row['round_abbr'])
 

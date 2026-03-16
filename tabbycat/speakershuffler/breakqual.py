@@ -79,24 +79,24 @@ class FightClubBreakGenerator(StandardBreakGenerator):
 
 
 def build_fight_club_team_standings(teams, team_scores):
-    """Build a Standings object for Fight Club teams, sorted by speaker total.
+    """Build a Standings object for Fight Club teams, sorted by PW Tot.
 
     Args:
         teams: iterable of Team objects
-        team_scores: {team: score} mapping
+        team_scores: {team: score} mapping (placement-weighted totals)
     """
     from standings.base import Standings
     from standings.ranking import BasicRankAnnotator
 
     standings = Standings(teams)
     standings.record_added_metric(
-        'speaker_total', _("Speaker total"), _("Spk"), None, False,
+        'pw_total', _("placement-weighted total"), _("PW Tot"), None, False,
     )
     for team in teams:
-        standings.add_metric(team, 'speaker_total', team_scores[team])
+        standings.add_metric(team, 'pw_total', team_scores[team])
 
-    standings.sort(['speaker_total'])
-    BasicRankAnnotator(['speaker_total']).run(standings)
+    standings.sort(['pw_total'])
+    BasicRankAnnotator(['pw_total']).run(standings)
     return standings
 
 

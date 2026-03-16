@@ -258,7 +258,11 @@ class BaseSpeakerStandingsView(BaseStandingsView):
         table.add_team_columns([info.speaker.team for info in standings])
 
         scores_headers = [{'key': escape(round.abbreviation), 'title': escape(round.abbreviation)} for round in rounds]
-        scores_data = [[metricformat(x) if x is not None else '—' for x in standing.scores] for standing in standings]
+        if self.tournament.pref('fight_club_mode'):
+            from speakershuffler.metrics import format_scores_with_pw
+            scores_data = format_scores_with_pw(standings, rounds, self.tournament)
+        else:
+            scores_data = [[metricformat(x) if x is not None else '—' for x in standing.scores] for standing in standings]
         table.add_columns(scores_headers, scores_data)
         table.add_metric_columns(standings, integer_score_columns=self.integer_score_columns(rounds))
 

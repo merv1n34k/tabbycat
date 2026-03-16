@@ -550,10 +550,16 @@ class Round(models.Model):
                 seen.add(key)
                 team_speakers.setdefault(team.pk, []).append(ss.speaker)
 
+        from participants.models import Speaker
+
         for team in dt_map.values():
             speakers = team_speakers.get(team.pk, [])
+            # List for the FightClubDescriptor (reads prefetch cache directly)
             team._prefetched_objects_cache['speaker_set'] = speakers
-            team.__dict__.pop('speakers', None)
+            # QuerySet for forms that need .all() (e.g. ModelChoiceField)
+            team.__dict__['speakers'] = Speaker.objects.filter(
+                pk__in=[s.pk for s in speakers],
+            )
 
     # --------------------------------------------------------------------------
     # Convenience querysets

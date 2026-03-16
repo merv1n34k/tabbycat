@@ -1,32 +1,9 @@
+from pathlib import Path
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from tournaments.models import Round
-
-
-class DirectoryInput(forms.ClearableFileInput):
-    """File input widget that opens the OS directory picker."""
-    allow_multiple_selected = True
-
-    def __init__(self, attrs=None):
-        default_attrs = {'webkitdirectory': '', 'directory': '', 'multiple': ''}
-        if attrs:
-            default_attrs.update(attrs)
-        super().__init__(attrs=default_attrs)
-
-
-class MultiFileField(forms.FileField):
-    """FileField that accepts multiple files from a directory input."""
-
-    def clean(self, data, initial=None):
-        if not data or data == []:
-            if self.required:
-                raise forms.ValidationError(self.error_messages['required'])
-            return []
-        # data may be a single file or a list; normalise to list
-        if not isinstance(data, (list, tuple)):
-            data = [data]
-        return data
 
 
 class GenerateSlidesForm(forms.Form):
@@ -35,15 +12,13 @@ class GenerateSlidesForm(forms.Form):
         label=_("Round"),
         empty_label=_("(select a round)"),
     )
-    photos = MultiFileField(
+    photos_dir = forms.CharField(
         label=_("Photos directory"),
-        help_text=_("Click to select the folder containing speaker photos."),
-        widget=DirectoryInput(),
+        help_text=_("Absolute path to the directory containing speaker photos on the server."),
     )
-    template_file = forms.FileField(
+    template_path = forms.CharField(
         label=_("Template image"),
-        help_text=_("Click to select the template PNG file."),
-        widget=forms.ClearableFileInput(attrs={'accept': 'image/png'}),
+        help_text=_("Absolute path to the template PNG file on the server."),
     )
 
     def __init__(self, tournament, *args, **kwargs):
@@ -53,3 +28,15 @@ class GenerateSlidesForm(forms.Form):
         ).exclude(
             draw_status=Round.Status.NONE,
         ).order_by('seq')
+
+    def clean_photos_dir(self):
+        value = self.cleaned_data['photos_dir']
+        if not Path(value).is_dir():
+            raise forms.ValidationError(_("Directory does not exist: %(path)s") % {'path': value})
+        return value
+
+    def clean_template_path(self):
+        value = self.cleaned_data['template_path']
+        if not Path(value).is_file():
+            raise forms.ValidationError(_("File does not exist: %(path)s") % {'path': value})
+        return value

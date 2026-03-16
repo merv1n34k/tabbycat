@@ -100,6 +100,12 @@
           class="list-group-item" data-parent="#setuph">
         <span class="circle-icon small-circle"></span><i data-feather="archive"></i>{% trans "Export XML" %}
       </a>
+      {% if pref.fight_club_mode %}
+        <a href="{% tournamenturl 'shuffler-slides-generate' %}"
+           class="list-group-item" data-parent="#setuph">
+          <span class="circle-icon small-circle"></span><i data-feather="image"></i>{% trans "Slides" %}
+        </a>
+      {% endif %}
     </div>
   </div>
 

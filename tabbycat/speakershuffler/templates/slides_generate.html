@@ -11,11 +11,11 @@
   <div class="col-lg-8 ml-lg-auto mr-md-auto">
 
     <div class="card">
-      <form action="." method="POST">
+      <form action="." method="POST" enctype="multipart/form-data">
       {% csrf_token %}
 
       {% trans "Generate Slides" context "page title" as title %}
-      {% trans "Select a round and provide the server paths to the photos directory and slide template to generate per-room PNG slides." as text %}
+      {% trans "Select a round, choose the photos folder and template image, then click Generate to download a ZIP of per-room PNG slides." as text %}
       {% include "components/form-title.html" with emoji="🖼" %}
 
       {% include "components/form-main.html" %}

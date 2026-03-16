@@ -533,9 +533,8 @@ class Round(models.Model):
         all_spk_pks = [pk for pks in team_to_speaker_pks.values() for pk in pks]
         speakers_by_pk = {s.pk: s for s in Speaker.objects.filter(pk__in=all_spk_pks).order_by('name')}
 
-        # Replace the prefetch cache on each team so that
-        # _fight_club_team_name() in the table builder renders the correct
-        # historical speaker names.
+        # Replace the prefetch cache on each team so that the
+        # FightClubDescriptor renders the correct historical speaker names.
         for debate in debates:
             if not hasattr(debate, '_prefetched_objects_cache'):
                 continue

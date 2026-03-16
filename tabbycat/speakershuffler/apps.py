@@ -38,9 +38,7 @@ class SpeakerShufflerConfig(AppConfig):
                         obj.__dict__['_fc_mode'] = fc
                     if fc:
                         speakers = getattr(obj, '_prefetched_objects_cache', {}).get('speaker_set')
-                        if speakers is None:
-                            speakers = list(obj.speaker_set.all())
-                        if speakers:
+                        if speakers is not None and speakers:
                             return " & ".join(s.name for s in speakers)
                     return obj.__dict__.get(self.field.attname)
 

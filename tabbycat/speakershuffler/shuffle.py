@@ -160,11 +160,20 @@ def _populate_round1_history(tournament):
         SpeakerPairHistory.objects.bulk_create(rows, ignore_conflicts=True)
         logger.info("Populated round 1 pair history: %d pairs", len(rows))
 
-    # ShuffleLog for round 1 so historical draw display works
+    # ShuffleLog for round 1 so historical draw display works.
+    # Only include speakers who actually scored in R1 (not the full roster).
     if not ShuffleLog.objects.filter(round=round1).exists():
+        from results.models import SpeakerScore
+        scored = set(SpeakerScore.objects.filter(
+            ballot_submission__confirmed=True,
+            debate_team__debate__round=round1,
+        ).values_list('speaker_id', flat=True))
+
         assignments = {}
         for team in teams:
             for s in Speaker.objects.filter(team=team):
+                if scored and s.pk not in scored:
+                    continue  # skip bench speakers
                 assignments[str(s.pk)] = team.pk
         ShuffleLog.objects.create(
             round=round1,

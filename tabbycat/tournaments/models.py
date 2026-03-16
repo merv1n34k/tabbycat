@@ -514,40 +514,72 @@ class Round(models.Model):
         return debates
 
     def _patch_historical_speakers(self, debates):
-        """Replace each team's prefetched speaker_set and team names with
-        the historical data from ShuffleLog, so that viewing a past round's
-        draw shows the correct speakers and team names."""
+        """Replace each team's prefetched speaker_set with historical data
+        so that the FightClubDescriptor renders correct speaker names.
+
+        Uses ShuffleLog if available; otherwise falls back to SpeakerScore
+        to determine which speakers actually debated (important when teams
+        have more speakers than substantive_speakers, e.g. R1 before any
+        shuffle has occurred)."""
         from participants.models import Speaker
         from speakershuffler.models import ShuffleLog
 
         log = ShuffleLog.objects.filter(round=self).order_by('-timestamp').first()
-        if not log:
-            return  # no shuffle for this round — live FK is correct
 
-        # Build {team_id: [speaker_pk, ...]} from the log
-        team_to_speaker_pks = {}
-        for spk_pk_str, team_pk in log.speaker_assignments.items():
-            team_to_speaker_pks.setdefault(team_pk, []).append(int(spk_pk_str))
+        if log:
+            # Build {team_id: [speaker_pk, ...]} from the log
+            team_to_speaker_pks = {}
+            for spk_pk_str, team_pk in log.speaker_assignments.items():
+                team_to_speaker_pks.setdefault(team_pk, []).append(int(spk_pk_str))
 
-        # Load all relevant speakers in one query
-        all_spk_pks = [pk for pks in team_to_speaker_pks.values() for pk in pks]
-        speakers_by_pk = {s.pk: s for s in Speaker.objects.filter(pk__in=all_spk_pks).order_by('name')}
+            all_spk_pks = [pk for pks in team_to_speaker_pks.values() for pk in pks]
+            speakers_by_pk = {s.pk: s for s in Speaker.objects.filter(pk__in=all_spk_pks).order_by('name')}
 
-        # Replace the prefetch cache on each team so that the
-        # FightClubDescriptor renders the correct historical speaker names.
-        for debate in debates:
-            if not hasattr(debate, '_prefetched_objects_cache'):
-                continue
-            for dt in debate.debateteam_set.all():
-                team = dt.team
-                historical_pks = team_to_speaker_pks.get(team.pk, [])
-                historical_speakers = sorted(
-                    [speakers_by_pk[pk] for pk in historical_pks if pk in speakers_by_pk],
-                    key=lambda s: s.name,
-                )
-                # Replace Django's prefetch cache for speaker_set
-                team._prefetched_objects_cache['speaker_set'] = historical_speakers
-                # Clear cached_property so it re-reads from prefetch cache
+            for debate in debates:
+                if not hasattr(debate, '_prefetched_objects_cache'):
+                    continue
+                for dt in debate.debateteam_set.all():
+                    team = dt.team
+                    historical_pks = team_to_speaker_pks.get(team.pk, [])
+                    historical_speakers = sorted(
+                        [speakers_by_pk[pk] for pk in historical_pks if pk in speakers_by_pk],
+                        key=lambda s: s.name,
+                    )
+                    team._prefetched_objects_cache['speaker_set'] = historical_speakers
+                    team.__dict__.pop('speakers', None)
+        else:
+            # No ShuffleLog — use SpeakerScore to find who actually debated.
+            from results.models import SpeakerScore
+
+            # Collect all DebateTeam IDs in one pass
+            dt_map = {}  # {debate_team_id: team}
+            for debate in debates:
+                if not hasattr(debate, '_prefetched_objects_cache'):
+                    continue
+                for dt in debate.debateteam_set.all():
+                    dt_map[dt.pk] = dt.team
+
+            if not dt_map:
+                return
+
+            scored = SpeakerScore.objects.filter(
+                debate_team_id__in=dt_map.keys(),
+                ballot_submission__confirmed=True,
+                ghost=False,
+            ).select_related('speaker').order_by('speaker__name')
+
+            team_speakers = {}  # {team_pk: [Speaker, ...]}
+            seen = set()
+            for ss in scored:
+                team = dt_map[ss.debate_team_id]
+                key = (team.pk, ss.speaker_id)
+                if key not in seen:
+                    seen.add(key)
+                    team_speakers.setdefault(team.pk, []).append(ss.speaker)
+
+            for team in dt_map.values():
+                speakers = team_speakers.get(team.pk, [])
+                team._prefetched_objects_cache['speaker_set'] = speakers
                 team.__dict__.pop('speakers', None)
 
     # --------------------------------------------------------------------------

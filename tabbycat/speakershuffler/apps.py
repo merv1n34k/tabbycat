@@ -39,7 +39,18 @@ class SpeakerShufflerConfig(AppConfig):
                     if fc:
                         speakers = getattr(obj, '_prefetched_objects_cache', {}).get('speaker_set')
                         if speakers is not None and speakers:
-                            return " & ".join(s.name for s in speakers)
+                            # Guard: if prefetch has more speakers than
+                            # substantive_speakers, it wasn't patched —
+                            # fall through to the DB value.
+                            max_spk = obj.__dict__.get('_fc_max_spk')
+                            if max_spk is None:
+                                try:
+                                    max_spk = obj.tournament.pref('substantive_speakers')
+                                except Exception:
+                                    max_spk = 99
+                                obj.__dict__['_fc_max_spk'] = max_spk
+                            if len(speakers) <= max_spk:
+                                return " & ".join(s.name for s in speakers)
                     return obj.__dict__.get(self.field.attname)
 
                 def __set__(self, obj, value):

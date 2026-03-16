@@ -69,15 +69,22 @@ class StandingsIndexView(AdministratorMixin, RoundMixin, TemplateView):
             'debate_team__team',
             'debate_team__debate__round',
             'debate_team__team__institution',
-        )
+        ).prefetch_related('debate_team__team__speaker_set')
         if self.tournament.pref('teams_in_debate') == 4:
             team_scores.filter(debate_team__debate__round__stage=Round.Stage.PRELIMINARY)
             kwargs["top_team_scores"] = team_scores.order_by('-score')[:9]
             kwargs["bottom_team_scores"] = team_scores.order_by('score')[:9]
         else:
             team_scores = team_scores.filter(margin__gte=0)
-            kwargs["top_margins"] = team_scores.order_by('-margin')[:9]
-            kwargs["bottom_margins"] = team_scores.order_by('margin')[:9]
+            top_margins = list(team_scores.order_by('-margin')[:9])
+            bottom_margins = list(team_scores.order_by('margin')[:9])
+            # Pre-populate opponents so template doesn't trigger N+1 queries
+            # without speaker_set prefetch
+            from draw.prefetch import populate_opponents
+            debate_teams = [ts.debate_team for ts in top_margins + bottom_margins]
+            populate_opponents(debate_teams)
+            kwargs["top_margins"] = top_margins
+            kwargs["bottom_margins"] = bottom_margins
 
         if self.tournament.pref('motion_vetoes_enabled'):
             motions = Motion.objects.filter(

@@ -8,6 +8,19 @@ class SpeakerShufflerConfig(AppConfig):
 
     def ready(self):
         self._install_fight_club_name_descriptors()
+        self._register_extensions()
+
+    @staticmethod
+    def _register_extensions():
+        # Break generator
+        from breakqual.base import registry
+        from speakershuffler.breakqual import FightClubBreakGenerator
+        registry[FightClubBreakGenerator.key] = FightClubBreakGenerator
+
+        # Speaker metric
+        from standings.speakers import SpeakerStandingsGenerator
+        from speakershuffler.metrics import PlacementWeightedScoreMetricAnnotator
+        SpeakerStandingsGenerator.metric_annotator_classes['weighted_total'] = PlacementWeightedScoreMetricAnnotator
 
     @staticmethod
     def _install_fight_club_name_descriptors():

@@ -23,7 +23,8 @@ def get_breaking_teams(category, prefetch=(), rankings=('rank',)):
     teams = category.breaking_teams.all().prefetch_related(*prefetch)
 
     if category.rule == 'fight-club':
-        standings = _generate_fight_club_standings(category, teams)
+        from speakershuffler.breakqual import generate_fight_club_standings
+        standings = generate_fight_club_standings(category, teams)
     else:
         metrics = category.tournament.pref('team_standings_precedence')
         generator = TeamStandingsGenerator(metrics, rankings)
@@ -43,53 +44,6 @@ def get_breaking_teams(category, prefetch=(), rankings=('rank',)):
             tsi.break_rank = bt.break_rank
 
     return standings
-
-
-def build_fight_club_team_standings(teams, team_scores):
-    """Build a Standings object for Fight Club teams, sorted by speaker total.
-
-    Args:
-        teams: iterable of Team objects
-        team_scores: {team: score} mapping
-    """
-    from standings.base import Standings
-    from standings.ranking import BasicRankAnnotator
-
-    standings = Standings(teams)
-    standings.record_added_metric(
-        'speaker_total', _("Speaker total"), _("Spk"), None, False,
-    )
-    for team in teams:
-        standings.add_metric(team, 'speaker_total', team_scores[team])
-
-    standings.sort(['speaker_total'])
-    BasicRankAnnotator(['speaker_total']).run(standings)
-    return standings
-
-
-def _generate_fight_club_standings(category, teams):
-    """Generate standings for Fight Club mode, ranking teams by sum of
-    their current speakers' placement-weighted scores."""
-    from participants.models import Speaker
-    from standings.speakers import SpeakerStandingsGenerator
-
-    tournament = category.tournament
-    last_prelim = tournament.prelim_rounds().order_by('-seq').first()
-
-    speaker_qs = Speaker.objects.filter(team__in=teams)
-    generator = SpeakerStandingsGenerator(('weighted_total',), ('rank',))
-    speaker_standings = generator.generate(speaker_qs, round=last_prelim)
-
-    speaker_scores = {}
-    for info in speaker_standings:
-        speaker_scores[info.speaker.pk] = info.metrics.get('weighted_total', 0) or 0
-
-    team_scores = {}
-    for team in teams:
-        team_speaker_pks = Speaker.objects.filter(team=team).values_list('pk', flat=True)
-        team_scores[team] = sum(speaker_scores.get(pk, 0) for pk in team_speaker_pks)
-
-    return build_fight_club_team_standings(teams, team_scores)
 
 
 def breakcategories_with_counts(tournament):

@@ -239,11 +239,8 @@ def make_feedback_form_class_for_team(source, tournament, submission_fields, con
     # In Fight Club mode, load historical team names from ShuffleLog
     historical_team_names = {}
     if tournament.pref('fight_club_mode'):
-        from speakershuffler.models import ShuffleLog
-        for log in ShuffleLog.objects.filter(round__tournament=tournament):
-            display_names = log.get_team_display_names()
-            if source.pk in display_names:
-                historical_team_names[log.round_id] = display_names[source.pk]
+        from speakershuffler.feedback import get_historical_team_names
+        historical_team_names = get_historical_team_names(tournament, source.pk)
 
     choices = [(None, _("-- Adjudicators --"))]
     for debate in debates:

@@ -76,29 +76,8 @@ class BaseBreakingTeamsView(SingleObjectFromTournamentMixin, VueTableTemplateVie
         return table
 
     def _get_fight_club_table(self):
-        from participants.models import Speaker
-        from standings.speakers import SpeakerStandingsGenerator
-
-        tournament = self.object.tournament
-        last_prelim = tournament.prelim_rounds().order_by('-seq').first()
-
-        # Get speakers on breaking teams only
-        breaking_teams = [tsi.team for tsi in self.standings
-                          if isinstance(tsi.break_rank, int)]
-        speakers = Speaker.objects.filter(
-            team__in=breaking_teams,
-        ).select_related('team', 'team__institution')
-
-        generator = SpeakerStandingsGenerator(('weighted_total',), ('rank',))
-        speaker_standings = generator.generate(speakers, round=last_prelim)
-        speaker_list = list(speaker_standings)
-
-        table = TabbycatTableBuilder(view=self, title=escape(self.object.name), sort_key='Rk')
-        table.add_ranking_columns(speaker_standings)
-        table.add_speaker_columns([info.speaker for info in speaker_list])
-        table.add_team_columns([info.speaker.team for info in speaker_list])
-        table.add_metric_columns(speaker_standings)
-        return table
+        from speakershuffler.break_views import build_fight_club_break_table
+        return build_fight_club_break_table(self, self.object, self.standings)
 
     def get_page_title(self):
         return _("%(category)s Break") % {'category': self.object.name}

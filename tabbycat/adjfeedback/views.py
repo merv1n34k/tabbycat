@@ -368,44 +368,10 @@ class FeedbackFromAdjudicatorView(FeedbackFromSourceView):
 class BaseAddFeedbackIndexView(TournamentMixin, VueTableTemplateView):
 
     def _build_fight_club_team_table(self, table, tournament):
-        """Build team rows: one row per team per released round, showing
-        that round's team name. Only includes released rounds."""
-        from speakershuffler.models import ShuffleLog
-        from tournaments.models import Round
+        from speakershuffler.feedback import build_fight_club_team_table
+        build_fight_club_team_table(table, tournament, self._get_from_team_link_by_pk)
 
-        # Only released rounds
-        released_rounds = tournament.round_set.filter(
-            draw_status=Round.Status.RELEASED,
-            stage=Round.Stage.PRELIMINARY,
-            silent=False,
-        ).order_by('seq')
-
-        rows = []
-        for log in ShuffleLog.objects.filter(
-            round__in=released_rounds,
-        ).select_related('round').order_by('round__seq'):
-            display_names = log.get_team_display_names()
-            for team_pk, name in display_names.items():
-                rows.append({
-                    'round_abbr': log.round.abbreviation,
-                    'name': name,
-                    'team_pk': team_pk,
-                })
-
-        team_data = []
-        round_data = []
-        for row in rows:
-            team_data.append({
-                'text': row['name'],
-                'link': self.get_from_team_link_by_pk(row['team_pk']),
-            })
-            round_data.append(row['round_abbr'])
-
-        table.add_column({'key': 'team', 'title': _("Team")}, team_data)
-        table.add_column({'key': 'round', 'title': _("Round")}, round_data)
-
-    def get_from_team_link_by_pk(self, team_pk):
-        """Default: delegate to get_from_team_link with a stub object."""
+    def _get_from_team_link_by_pk(self, team_pk):
         class _Stub:
             id = team_pk
         return self.get_from_team_link(_Stub())

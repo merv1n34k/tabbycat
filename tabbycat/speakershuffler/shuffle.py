@@ -252,10 +252,8 @@ def perform_speaker_shuffle(round):
     ranked_speakers = _rank_speakers(tournament, round, speakers)
     logger.info("Ranked %d speakers for shuffle", len(ranked_speakers))
 
-    # Load pair history and conflicts
-    pair_history = _load_pair_history(tournament)
+    # Load personal conflicts (hard constraints)
     personal_conflicts = _load_personal_conflicts(tournament)
-    penalty_weight = tournament.pref('speaker_repair_penalty')
 
     def pair_cost(s1, s2):
         key = frozenset([s1.pk, s2.pk])

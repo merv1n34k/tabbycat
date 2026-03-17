@@ -259,7 +259,7 @@ def perform_speaker_shuffle(round):
 
     def pair_cost(s1, s2):
         key = frozenset([s1.pk, s2.pk])
-        cost = pair_history[key] * penalty_weight
+        cost = 0.0
         if key in personal_conflicts:
             cost += CONFLICT_PENALTY
         return cost

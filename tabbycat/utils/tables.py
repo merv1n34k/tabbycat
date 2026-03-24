@@ -7,8 +7,10 @@ from django.db.models import Exists, OuterRef, Prefetch
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.encoding import force_str
+from django.utils.formats import date_format
 from django.utils.html import escape
 from django.utils.safestring import SafeString
+from django.utils.timezone import localtime
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
@@ -757,6 +759,25 @@ class TabbycatTableBuilder(BaseTableBuilder):
             'tooltip': _("Room"),
         }
         self.add_column(venue_header, venue_data)
+
+    def add_debate_scheduled_at_column_if_needed(self, debates):
+        """After venue: show per-debate scheduled times in the site timezone when any debate has one."""
+        if not any(d.scheduled_at for d in debates):
+            return
+
+        def fmt(dt):
+            return date_format(localtime(dt), format='SHORT_DATETIME_FORMAT')
+
+        cells = [
+            {'text': fmt(d.scheduled_at), 'class': 'no-wrap'} if d.scheduled_at else {'text': self.BLANK_TEXT}
+            for d in debates
+        ]
+        header = {
+            'key': 'scheduled_at',
+            'icon': 'clock',
+            'tooltip': _("Scheduled time"),
+        }
+        self.add_column(header, cells)
 
     def add_draw_conflicts_columns(self, debates, venue_conflicts, adjudicator_conflicts):
 

@@ -21,7 +21,7 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
     code = forms.CharField(max_length=institution_code.max_length, label=_("Institution abbreviation"), help_text=institution_code.help_text)
     region = forms.ModelChoiceField(
         queryset=Region.objects.all(),
-        label=institution_region.verbose_name,
+        label=_("Institution region"),
         help_text=institution_region.help_text,
     )
     key = forms.CharField(widget=forms.HiddenInput(), required=False)
@@ -45,16 +45,25 @@ class TournamentInstitutionForm(CustomQuestionsFormMixin, forms.ModelForm):
         if 'region' not in self.tournament.pref('reg_institution_fields'):
             self.fields.pop('region')
 
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        existing_institution = TournamentInstitution.objects.filter(tournament=self.tournament, institution__name__iexact=name).exists()
+        if existing_institution:
+            raise forms.ValidationError(_("An institution with this name is already registered for this tournament."))
+        return name
+
     class Meta:
         model = TournamentInstitution
         exclude = ('tournament', 'institution', 'teams_allocated', 'adjudicators_allocated')
 
     def save(self):
         self.cleaned_data.pop('key', None)
+        name = self.cleaned_data.pop('name')
+        code = self.cleaned_data.pop('code')
+        region = self.cleaned_data.pop('region', None)
         inst, created = Institution.objects.get_or_create(
-            name=self.cleaned_data.pop('name'),
-            code=self.cleaned_data.pop('code'),
-            region=self.cleaned_data.pop('region', None),
+            name=name,
+            defaults={'region': region, 'code': code},
         )
 
         obj = super().save(commit=False)
@@ -107,6 +116,7 @@ class InstitutionEditForm(forms.Form):
         inst_initial = {
             'name': t_inst.institution.name,
             'code': t_inst.institution.code,
+            'region': t_inst.institution.region,
             **get_answers_initial(t_inst),
         }
 

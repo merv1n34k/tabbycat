@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 from itertools import groupby
 
@@ -1023,14 +1024,19 @@ class SpeakerRoundStandingsRoundsView(TournamentAPIMixin, TournamentPublicAPIMix
     list_permission = Permission.VIEW_SPEAKERSSTANDINGS
 
     def get_queryset(self):
-        qs = super().get_queryset().prefetch_related(Prefetch('team__debateteam_set', queryset=DebateTeam.objects.all().select_related('debate__round__tournament')))
-        data = {s.id: s for s in qs.all()}
+        qs = super().get_queryset()
+        data = {s.id: s for s in qs}
+
+        # Bulk load debateteams for all speakers' teams (avoids N+1 from per-speaker access)
+        team_ids = list({s.team_id for s in data.values()})
+        debateteams_by_team_id = defaultdict(list)
+        for dt in DebateTeam.objects.filter(team_id__in=team_ids).select_related('debate__round__tournament'):
+            debateteams_by_team_id[dt.team_id].append(dt)
 
         params_serializer = SpeakerRoundStandingsRoundsParamsSerializer(data=self.request.query_params, context={'tournament': self.tournament})
         params_serializer.is_valid(raise_exception=True)
 
-        speaker_scores = SpeakerScore.objects.select_related('speaker', 'ballot_submission',
-            'debate_team__debate__round__tournament').filter(
+        speaker_scores = SpeakerScore.objects.select_related('speaker', 'ballot_submission__debate__round__tournament').filter(
             ballot_submission__confirmed=True, speaker_id__in=data.keys(),
         ).order_by('speaker_id', 'debate_team_id', 'position')
 
@@ -1042,7 +1048,7 @@ class SpeakerRoundStandingsRoundsView(TournamentAPIMixin, TournamentPublicAPIMix
             speaker_scores = speaker_scores.filter(position__lte=self.tournament.last_substantive_position)
 
         for spk in data.values():
-            spk.debateteams = deepcopy(spk.team.debateteam_set.all())
+            spk.debateteams = deepcopy(debateteams_by_team_id[spk.team_id])
             for dt in spk.debateteams:
                 dt.scores = []
 
@@ -1067,7 +1073,7 @@ class TeamRoundStandingsRoundsView(TournamentAPIMixin, TournamentPublicAPIMixin,
     list_permission = Permission.VIEW_TEAMSTANDINGS
 
     def get_queryset(self):
-        ts_pf = Prefetch('teamscore_set', queryset=TeamScore.objects.filter(ballot_submission__confirmed=True), to_attr='round_scores')
+        ts_pf = Prefetch('teamscore_set', queryset=TeamScore.objects.select_related('ballot_submission__debate__round__tournament').filter(ballot_submission__confirmed=True), to_attr='round_scores')
         qs = super().get_queryset().prefetch_related(
             Prefetch('debateteam_set', queryset=DebateTeam.objects.all().prefetch_related(ts_pf).select_related('debate__round__tournament')))
 
@@ -1183,7 +1189,10 @@ class BallotViewSet(RoundAPIMixin, TournamentPublicAPIMixin, ModelViewSet):
             return (
                 (view.action in ['list', 'retrieve', 'create'] and view.tournament.pref('participant_ballots') == 'private-urls' and view.participant_requester) or
                 (view.action == 'create' and view.tournament.pref('participant_ballots') == 'public') or
-                (view.action in ['list', 'retrieve'] and view.tournament.pref('private_ballots_released') is True)
+                (view.action in ['list', 'retrieve'] and (
+                    view.tournament.pref('private_ballots_released') or
+                    view.tournament.pref('ballots_released') or
+                    (view.tournament.pref('all_results_released') and view.tournament.pref('speaker_tab_released'))))
             )
 
     serializer_class = serializers.BallotSerializer
@@ -1193,7 +1202,7 @@ class BallotViewSet(RoundAPIMixin, TournamentPublicAPIMixin, ModelViewSet):
     round_field = 'debate__round'
 
     authentication_classes = [TokenAuthentication, SessionAuthentication, URLKeyAuthentication]
-    permission_classes = [PerTournamentPermissionRequired | PublicPreferencePermission | CustomPermission]
+    permission_classes = [PerTournamentPermissionRequired | CustomPermission]
 
     list_permission = Permission.VIEW_BALLOTSUBMISSIONS
     create_permission = Permission.ADD_BALLOTSUBMISSIONS

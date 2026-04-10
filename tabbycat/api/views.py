@@ -1234,7 +1234,7 @@ class BallotViewSet(RoundAPIMixin, TournamentPublicAPIMixin, ModelViewSet):
         if hasattr(self, '_debate'):
             return self._debate
 
-        self._debate = get_object_or_404(Debate, pk=self.kwargs.get('debate_pk'))
+        self._debate = get_object_or_404(Debate, pk=self.kwargs.get('debate_pk'), round=self.round)
         return self._debate
 
     def lookup_kwargs(self):
@@ -1385,8 +1385,11 @@ class FeedbackViewSet(TournamentAPIMixin, AdministratorAPIMixin, ModelViewSet):
 
         # Disallow querying for feedback that they didn't submit
         if (person := self.participant_requester) is not None:
-            if self.action == 'list' and (query_params.get('source_type') != type(person).__name__.lower() or query_params.get('source') != str(person.id)):
-                raise PermissionDenied("URL key-authorized requests may only get the participants' objects")
+            match type(person).__name__.lower():
+                case 'adjudicator':
+                    filters &= Q(source_adjudicator__adjudicator_id=person.id)
+                case 'team':
+                    filters &= Q(source_team__team_id=person.id)
 
         if query_params.get('source_type') == 'adjudicator':
             filters &= Q(source_team__isnull=True)

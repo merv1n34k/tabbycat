@@ -1208,6 +1208,17 @@ class PublicBreakingTeams(BooleanPreference):
 
 
 @tournament_preferences_registry.register
+class PublicBreakMetricsToShow(IntegerPreference):
+    help_text = _("How many metrics from the team standings precedence to show on the public break page. "
+                  "For example, 2 shows only the first two metrics set in Standings. "
+                  "Use 0 to hide all metrics, or -1 to show all of them.")
+    verbose_name = _("Number of metrics to show on public break page")
+    section = public_features
+    name = 'public_break_metrics_to_show'
+    default = -1
+
+
+@tournament_preferences_registry.register
 class PublicBreakingAdjs(BooleanPreference):
     help_text = _("Enables the public page showing breaking adjudicators. Intended for use after the break announcement.")
     verbose_name = _("Release adjudicators break to public")

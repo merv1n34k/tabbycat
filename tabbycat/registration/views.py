@@ -461,7 +461,7 @@ class PublicCreateAdjudicatorFormView(BaseCreateAdjudicatorFormView):
 
 class CreateSpeakerFormView(LogActionMixin, PublicTournamentPageMixin, CustomQuestionFormMixin, FormView):
     form_class = SpeakerForm
-    template_name = 'adjudicator_registration_form.html'
+    template_name = 'speaker_registration_form.html'
     page_emoji = '👄'
     page_title = gettext_lazy("Register Speaker")
     action_log_type = ActionLogEntry.ActionType.SPEAKER_REGISTER
@@ -482,7 +482,6 @@ class CreateSpeakerFormView(LogActionMixin, PublicTournamentPageMixin, CustomQue
         if self.key:
             team = Team.objects.all_with_unconfirmed.prefetch_related('speaker_set').filter(tournament=tournament, pk=self.kwargs['pk']).first()
             return (
-                tournament.pref('institution_participant_registration') and
                 Invitation.objects.filter(tournament=tournament, for_content_type=ContentType.objects.get_for_model(Speaker), team=team, url_key=self.key).exists() and
                 team.speaker_set.count() < tournament.pref('speakers_in_team')
             )
@@ -620,6 +619,7 @@ class AdminEditInstitutionFormView(TournamentMixin, AdministratorMixin, FormView
         inst = t_inst.institution
         inst.name = inst_form.cleaned_data['name']
         inst.code = inst_form.cleaned_data['code']
+        inst.region = inst_form.cleaned_data.get('region', None)
         inst.save()
 
         if 'teams_requested' in inst_form.fields:

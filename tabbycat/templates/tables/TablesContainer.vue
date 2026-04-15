@@ -13,10 +13,14 @@ const emit = defineEmits(['toggle-checked'])
 const { gettext } = useDjangoI18n()
 const filterKey = ref('')
 
-const table = ref([])
+const tableRefs = ref({})
 
 const setTableRef = (i) => (el) => {
-  table.value[i] = el
+  if (el) {
+    tableRefs.value[i] = el
+  } else {
+    delete tableRefs.value[i]
+  }
 }
 
 const tableClass = computed(() => {
@@ -35,7 +39,7 @@ const tableClass = computed(() => {
 const getTableId = (i) => `tableContainer-${i}`
 
 const copyTableTrigger = (i) => {
-  const child = table.value?.[i]
+  const child = tableRefs.value[i]
   child?.copyTableData?.()
 }
 </script>
@@ -54,7 +58,10 @@ const copyTableTrigger = (i) => {
         <div class="input-group-append">
           <span class="input-group-text"><i data-feather="search" /></span>
         </div>
-        <div v-for="(table, i) in tablesData">
+        <div
+          v-for="(table, i) in tablesData"
+          :key="i"
+        >
           <button
             class="btn btn-light border ml-2"
             data-toggle="tooltip"
@@ -69,6 +76,7 @@ const copyTableTrigger = (i) => {
 
     <div
       v-for="(table, i) in tablesData"
+      :key="i"
       class="col mb-3"
       :class="tableClass"
     >

@@ -478,7 +478,7 @@ class ScoresMixin:
     # --------------------------------------------------------------------------
 
     def _has_forfeit_fields(self):
-        return len(self.sides) == 2
+        return len(self.sides) == 2 and self.tournament.pref('enable_forfeits')
 
     def create_participant_fields(self):
         if self._has_forfeit_fields():

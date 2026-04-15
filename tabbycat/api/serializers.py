@@ -1744,9 +1744,11 @@ class PreformedPanelSerializer(serializers.ModelSerializer):
 class SpeakerRoundScoresSerializer(serializers.ModelSerializer):
     class RoundScoresSerializer(serializers.ModelSerializer):
         class RoundSpeechSerializer(serializers.ModelSerializer):
+            ballot_url = fields.DebateHyperlinkedRelatedField(view_name='api-ballot-detail', source='ballot_submission', queryset=BallotSubmission.objects.all(), allow_null=True)
+
             class Meta:
                 model = SpeakerScore
-                fields = ('score', 'position', 'ghost')
+                fields = ('score', 'position', 'ghost', 'rank', 'ballot_url')
 
         round = fields.TournamentHyperlinkedRelatedField(view_name='api-round-detail', source='debate.round',
             lookup_field='seq', lookup_url_kwarg='round_seq',
@@ -1773,13 +1775,15 @@ class TeamRoundScoresSerializer(serializers.ModelSerializer):
             lookup_field='seq', lookup_url_kwarg='round_seq',
             queryset=Round.objects.all())
 
+        ballot_url = fields.DebateHyperlinkedRelatedField(view_name='api-ballot-detail', source='ballot.ballot_submission', queryset=BallotSubmission.objects.all(), allow_null=True)
         points = serializers.IntegerField(source='ballot.points')
         score = serializers.FloatField(source='ballot.score')
         has_ghost = serializers.BooleanField(source='ballot.has_ghost')
+        win = serializers.BooleanField(source='ballot.win')
 
         class Meta:
             model = TeamScore
-            fields = ('round', 'points', 'score', 'has_ghost')
+            fields = ('round', 'ballot_url', 'points', 'score', 'has_ghost', 'win')
 
     team = fields.TournamentHyperlinkedIdentityField(view_name='api-team-detail')
     rounds = ScoreSerializer(many=True, source="debateteam_set")

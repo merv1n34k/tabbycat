@@ -623,14 +623,16 @@ class BasePublicNewBallotSetView(PersonalizablePublicTournamentPageMixin, RoundM
 
     def set_motions(self, former_ballot):
         if self.tournament.pref('enable_motions'):
-            self.ballotsub._roundmotion = self.round_motions[former_ballot.motion_id]
-            self.prefilled = True
+            self.ballotsub._roundmotion = self.round_motions.get(former_ballot.motion_id)
+            if self.ballotsub._roundmotion is not None:
+                self.prefilled = True
         if self.tournament.pref('motion_vetoes_enabled'):
             self.vetos = {}
             for dtmp in former_ballot.debateteammotionpreference_set.filter(preference=3):
                 self.vetos[dtmp.debate_team.side] = dtmp
-                self.vetos[dtmp.debate_team.side]._roundmotion = self.round_motions[dtmp.motion_id]
-            self.prefilled = True
+                self.vetos[dtmp.debate_team.side]._roundmotion = self.round_motions.get(dtmp.motion_id)
+            if self.vetos:
+                self.prefilled = True
 
     def error_page(self, message):
         # This bypasses the normal TemplateResponseMixin and ContextMixin

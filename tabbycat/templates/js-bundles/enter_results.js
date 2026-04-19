@@ -162,8 +162,8 @@ function update_speaker() {
   var speaker = $(':selected', this).text();
 
   // Update speaker names for all judges other than the first
-  // e.g. '.aff.s1 .speaker-name'
-  $('.' + side + '.' + pos + ' .speaker-name').html(speaker);
+  // e.g. '.side-0.s1 .speaker-name' (side_code matches form field prefix, e.g. id_0_speaker_s1)
+  $('.side-' + side + '.' + pos + ' .speaker-name').html(speaker);
 
   var others = [];
   var posno = parseInt(pos.charAt(1));

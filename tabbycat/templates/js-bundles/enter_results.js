@@ -86,9 +86,12 @@ function refresh_totals(scoresheet) {
         }
       }
       var team_total = sum($(`.side-${i}.score input.total`, $scoresheet));
-      // Update totals scores only if both speaker scores have been entered
+      // Always record a numeric total so `total_scores` stays a dense array;
+      // a sparse array here makes `.map()` skip holes and the downstream
+      // `sortedScores[i][0]` / `sortedScores[j][0]` reads crash on undefined.
+      total_scores[i] = team_total > 99 ? team_total : 0;
+      // Only display the total once both speaker scores have been entered.
       if (team_total > 99) {
-        total_scores[i] = team_total
         totals_elements[i].text(total_scores[i]);
       }
     }
@@ -104,6 +107,7 @@ function refresh_totals(scoresheet) {
     // Use sorted dictionary to assign relative margins and win indicators
     for (var i = 0; i < sortedScores.length; i++) {
 
+      if (!sortedScores[i]) { continue }
       var team = sortedScores[i][0];
       if (total_scores[team] === 0) { continue }
 

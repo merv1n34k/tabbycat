@@ -1,5 +1,5 @@
 from django import template
-from django.forms import CheckboxInput, CheckboxSelectMultiple, RadioSelect
+from django.forms import CheckboxSelectMultiple, RadioSelect
 
 register = template.Library()
 
@@ -12,7 +12,7 @@ def addcss(field, css):
 @register.filter(name='is_choice_widget')
 def is_choice_widget(field):
     widget = field.field.widget
-    return isinstance(widget, (RadioSelect, CheckboxSelectMultiple, CheckboxInput))
+    return isinstance(widget, (RadioSelect, CheckboxSelectMultiple))
 
 
 @register.filter(name='addboundwidgetcss')

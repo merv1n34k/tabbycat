@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+
+{% if pref.tournament_policy %}
+  <div class="card mt-3">
+    <div class="card-body">
+      {{ pref.tournament_policy|safe }}
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    {% trans "No policy has been published for this tournament yet." %}
+  </div>
+{% endif %}
+
+{% endblock %}

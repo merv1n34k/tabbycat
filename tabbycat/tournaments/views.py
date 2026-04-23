@@ -455,3 +455,11 @@ class PublicScheduleView(PublicTournamentPageMixin, VueTableTemplateView):
         context = super().get_context_data(**kwargs)
         context['schedule_timezone_label'] = get_current_timezone_name()
         return context
+
+
+class PublicPolicyView(PublicTournamentPageMixin, TemplateView):
+    template_name = 'public_tournament_policy.html'
+    cache_timeout = settings.PUBLIC_SLOW_CACHE_TIMEOUT
+    public_page_preference = 'public_policy'
+    page_title = _("Tournament Policy")
+    page_emoji = '📋'

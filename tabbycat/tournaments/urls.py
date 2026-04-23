@@ -30,6 +30,9 @@ urlpatterns = [
     # Public Schedule
     path('schedule/',               views.PublicScheduleView.as_view(), name='tournament-public-schedule'),
 
+    # Public Policy
+    path('policy/',                 views.PublicPolicyView.as_view(), name='tournament-public-policy'),
+
     # Application URLs for admin pages
     path('admin/allocations/',      include('adjallocation.urls')),
     path('admin/availability/',     include('availability.urls')),

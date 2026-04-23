@@ -190,6 +190,11 @@
   <a class="nav-link" href="{% tournamenturl 'tournament-public-schedule' %}">{% trans "Schedule" %}</a>
 </li>
 {% endif %}
+{% if pref.public_policy %}
+<li class="nav-item {% if policy_nav %}active{% endif %}">
+  <a class="nav-link" href="{% tournamenturl 'tournament-public-policy' %}">{% trans "Policy" %}</a>
+</li>
+{% endif %}
 {% if pref.participant_ballots == 'public' %}
   {% if tournament.current_rounds|length == 1 %}
     <li class="nav-item {% if enter_ballots_nav %}active{% endif %}">

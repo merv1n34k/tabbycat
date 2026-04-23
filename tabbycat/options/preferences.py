@@ -1249,6 +1249,26 @@ class WelcomeMessage(LongStringPreference):
     field_kwargs = {'required': False}
 
 
+@tournament_preferences_registry.register
+class PublicPolicy(BooleanPreference):
+    help_text = _("Enables the public page showing the tournament policy")
+    verbose_name = _("Enable public view of policy")
+    section = public_features
+    name = 'public_policy'
+    default = False
+
+
+@tournament_preferences_registry.register
+class TournamentPolicy(LongStringPreference):
+    help_text = _("Tournament rules, code of conduct, or equity policies, displayed on a dedicated page")
+    verbose_name = _("Tournament policy")
+    section = public_features
+    name = 'tournament_policy'
+    default = ""
+    widget = SummernoteWidget(attrs={'height': 150, 'class': 'form-summernote'})
+    field_kwargs = {'required': False}
+
+
 # ==============================================================================
 ui_options = Section('ui_options', verbose_name=_("UI Options"))
 # ==============================================================================

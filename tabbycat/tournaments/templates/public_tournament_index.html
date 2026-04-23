@@ -30,8 +30,11 @@
 {% block content %}
 
   {% if pref.welcome_message %}
-    <div class="card">
-      <div class="card-body pb-0">
+    <div class="card mt-3">
+      <div class="card-header h6">
+        {% trans "About" %}
+      </div>
+      <div class="card-body">
         {{ pref.welcome_message|safe }}
       </div>
     </div>
@@ -128,6 +131,12 @@
           {% trans "Schedule" as text %}
           {% tournamenturl 'tournament-public-schedule' as url %}
           {% include "components/item-action.html" with icon="clock" %}
+        {% endif %}
+
+        {% if pref.public_policy %}
+          {% trans "Policy" as text %}
+          {% tournamenturl 'tournament-public-policy' as url %}
+          {% include "components/item-action.html" with icon="book-open" %}
         {% endif %}
 
         {% if pref.public_checkins %}

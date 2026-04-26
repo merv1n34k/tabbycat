@@ -59,8 +59,8 @@
           {% trans "Generate Draw" %} <i data-feather="chevron-right"></i>
         </button>
       {% elif availability_info.venues.in_now == 0 %}
-        <button class="btn btn-danger disabled"
-          data-toggle="tooltip" title="{% trans "The draw cannot be generated until some rooms have been marked as available." %}">
+        <button class="btn btn-warning" id="createDraw"
+          data-toggle="tooltip" title="{% trans "No rooms are marked as available. You can still generate the draw and assign rooms later." %}">
           {% trans "Generate Draw" %} <i data-feather="chevron-right"></i>
         </button>
       {% elif min_venues > availability_info.venues.in_now %}

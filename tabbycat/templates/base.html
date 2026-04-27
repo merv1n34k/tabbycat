@@ -1,8 +1,15 @@
 {% load static statici18n i18n debate_tags %}<!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
+<html lang="{{ LANGUAGE_CODE }}" data-bs-theme="light">
 <head>
 
+  <script>
+    (function() {
+      var mode = localStorage.getItem('tabbycat-theme') || 'auto';
+      var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -221,6 +228,56 @@
     {% endif %}
 
   {% endblock js %}
+
+  <script>
+    (function() {
+      var toggle = document.getElementById('theme-toggle');
+      if (!toggle) return;
+
+      // Cycle: light → dark → auto (system)
+      var modes = ['light', 'dark', 'auto'];
+
+      function resolveTheme(mode) {
+        if (mode === 'auto') {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        return mode;
+      }
+
+      function getMode() {
+        return localStorage.getItem('tabbycat-theme') || 'auto';
+      }
+
+      function updateIcons(mode) {
+        var resolved = resolveTheme(mode);
+        var lightIcon = toggle.querySelector('.theme-icon-light');
+        var darkIcon = toggle.querySelector('.theme-icon-dark');
+        var autoIcon = toggle.querySelector('.theme-icon-auto');
+        if (lightIcon) lightIcon.style.display = mode === 'light' ? '' : 'none';
+        if (darkIcon) darkIcon.style.display = mode === 'dark' ? '' : 'none';
+        if (autoIcon) autoIcon.style.display = mode === 'auto' ? '' : 'none';
+      }
+
+      function applyMode(mode) {
+        document.documentElement.setAttribute('data-bs-theme', resolveTheme(mode));
+        updateIcons(mode);
+      }
+
+      applyMode(getMode());
+
+      toggle.addEventListener('click', function() {
+        var current = getMode();
+        var next = modes[(modes.indexOf(current) + 1) % modes.length];
+        localStorage.setItem('tabbycat-theme', next);
+        applyMode(next);
+      });
+
+      // React to OS theme changes when in auto mode
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+        if (getMode() === 'auto') applyMode('auto');
+      });
+    })();
+  </script>
 
 </body>
 </html>

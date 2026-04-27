@@ -1,0 +1,85 @@
+//------------------------------------------------------------------------------
+// Dark Mode Overrides
+// BS5.3 handles most components via data-bs-theme="dark".
+// These overrides cover Tabbycat-specific colors that BS5 doesn't know about.
+//------------------------------------------------------------------------------
+
+[data-bs-theme="dark"] {
+
+  // Layout
+  .navbar-light {
+    background: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+  }
+
+  .footer a {
+    border-bottom-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+  }
+
+  // Sidebar (already dark; just ensure consistency)
+  .admin-sidebar > .list-group > .list-group-item {
+    background: $sidebar-bg;
+  }
+
+  .fake-sidebar .list-group-item {
+    background: $sidebar-bg;
+  }
+
+  // Tables
+  .table {
+    background: var(--bs-body-bg);
+  }
+
+  thead,
+  .thead {
+    background: var(--bs-body-bg);
+  }
+
+  .table > tbody > tr:hover td {
+    background-color: var(--bs-tertiary-bg);
+  }
+
+  // Drag and drop
+  .vue-draggable {
+    background: var(--bs-body-bg);
+  }
+
+  .vue-droppable {
+    background: var(--bs-secondary-bg);
+  }
+
+  .vue-droppable.vue-droppable-locked {
+    background: var(--bs-body-bg);
+  }
+
+  // Buttons with outline - remove white bg
+  @each $color, $value in $theme-colors {
+    .btn-outline-#{$color} {
+      background-color: transparent;
+    }
+  }
+
+  // Form errors
+  .errorlist,
+  label.error {
+    color: var(--bs-danger);
+  }
+
+  // Allocation panel colors survive dark mode (they're semantic)
+
+  // Popover adjustments
+  .popover {
+    --bs-popover-bg: var(--bs-body-bg);
+  }
+
+  // Slideover info panel
+  .slideover-info {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  }
+
+  // Scrollbar hint for allocation droppables
+  .draggable-panel.vue-draggable {
+    border-color: var(--bs-border-color);
+  }
+}

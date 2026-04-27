@@ -31,7 +31,7 @@
   background: none;
 
   &:hover {
-    color: theme-color("primary"); // Keep consistent with top level
+    color: $primary; // Keep consistent with top level
   }
   // Override standard dropdown highlights
   &.active,
@@ -84,7 +84,7 @@
     display: block;
 
     &:hover {
-      color: lighten(theme-color("primary"), 15%);
+      color: lighten($primary, 15%);
       text-decoration: none;
     }
 
@@ -158,23 +158,23 @@
 }
 
 .circle-done {
-  stroke: lighten(theme-color("success"), 20);
-  fill: theme-color("success");
+  stroke: lighten($success, 20%);
+  fill: $success;
 }
 
 .circle-todo {
-  stroke: lighten(theme-color("warning"), 20);
-  fill: theme-color("warning");
+  stroke: lighten($warning, 20%);
+  fill: $warning;
 }
 
 .circle-current {
-  stroke: lighten(theme-color("info"), 20);
-  fill: theme-color("info");
+  stroke: lighten($info, 20%);
+  fill: $info;
 }
 
 .circle-later {
-  stroke: lighten(theme-color("secondary"), 20);
-  fill: theme-color("secondary");
+  stroke: lighten($secondary, 20%);
+  fill: $secondary;
 }
 
 //------------------------------------------------------------------------------

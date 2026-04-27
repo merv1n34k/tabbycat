@@ -24,7 +24,7 @@ const showTooltip = (event) => {
   <th
     :class="['vue-sortable', 'sort-' + header.key]"
     :title="header.tooltip"
-    :data-toggle="header.tooltip ? 'tooltip' : null"
+    :data-bs-toggle="header.tooltip ? 'tooltip' : null"
     @click="resort(header.key)"
     @hover="header.tooltip ? showTooltip : null"
   >

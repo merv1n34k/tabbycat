@@ -64,8 +64,8 @@ $alpha-ranking-8:           hsla(0, 0%, 50%, 1);
 $small-font-size: 80%;
 
 // Team Positions
-$aff:                     theme-color("info");
-$neg:                     theme-color("danger");
+$aff:                     $info;
+$neg:                     $danger;
 
 // BP colors designed according to a perceptual color wheel primaries as sides
 // i.e. red/green and yellow/blue opposites

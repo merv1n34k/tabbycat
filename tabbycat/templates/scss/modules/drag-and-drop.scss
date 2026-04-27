@@ -136,7 +136,7 @@
 // Inheritance hack below to address double-hovering when using draggable panels
 .vue-droppable-enter,
 .vue-droppable-enter .panel-incomplete {
-  background: theme-color("success") !important;
+  background: $success !important;
 }
 
 //------------------------------------------------------------------------------

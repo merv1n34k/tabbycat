@@ -35,7 +35,7 @@
   }
 }
 
-.btn[data-toggle='tooltip'] span {
+.btn[data-bs-toggle='tooltip'] span {
   border-bottom: 0; // Need to prevent dashed lines in glyphicons in btns
 }
 
@@ -84,7 +84,7 @@ input[type="range"] {
 // Inline form errors from django
 .errorlist,
 label.error {
-  color: theme-color("danger");
+  color: $danger;
   margin: 0;
   padding: 0;
   list-style-type: none;

@@ -77,17 +77,17 @@
     {% if user_role == "admin" %}
       <!-- Fake full height for menu -->
       <div class="row">
-        <div class="col-md-2 col-1 float-left pl-0 pr-lg-3 pr-md-3 pr-0 d-none d-sm-block width fake-sidebar">
+        <div class="col-md-2 col-1 float-start ps-0 pe-lg-3 pe-md-3 pe-0 d-none d-sm-block width fake-sidebar">
           <div class="list-group-item"></div>
         </div>
       </div>
 
       <!-- Insert a second level column structure for a side nav -->
       <div class="row">
-        <div class="admin-sidebar col-md-2 col-1 float-left pl-0 pr-md-3 pr-0 collapse width show">
+        <div class="admin-sidebar col-md-2 col-1 float-start ps-0 pe-md-3 pe-0 collapse width show">
           {% block sidebar %}{% include "nav/admin_nav.html" %}{% endblock %}
         </div>
-        <main class="col-md-10 col-11 float-left pl-md-0 pl-3 main">
+        <main class="col-md-10 col-11 float-start ps-md-0 ps-3 main">
     {% endif %}
 
     {% block header %}

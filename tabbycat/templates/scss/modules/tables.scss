@@ -198,7 +198,7 @@ thead,
 
   // For highlighting bracket boundaries
   &.highlight-row {
-    border-top: 3px solid theme-color("info");
+    border-top: 3px solid $info;
   }
 
   // For highlighting boundaries between metrics in "draw with details"

@@ -1,16 +1,15 @@
 
-// Core variables and mixins
+// Configuration
 @import "bootstrap/scss/functions";
 @import "bootstrap/scss/variables";
 @import "bootstrap/scss/variables-dark";
 @import "bootstrap/scss/maps";
 @import "bootstrap/scss/mixins";
+@import "bootstrap/scss/utilities";
+
+// Layout & components
 @import "bootstrap/scss/root";
-
-// Reset
 @import "bootstrap/scss/reboot";
-
-// Core CSS
 @import "bootstrap/scss/type";
 @import "bootstrap/scss/images";
 @import "bootstrap/scss/containers";
@@ -21,9 +20,6 @@
 @import "bootstrap/scss/transitions";
 @import "bootstrap/scss/dropdown";
 @import "bootstrap/scss/button-group";
-@import "bootstrap/scss/input-group";
-
-// Components
 @import "bootstrap/scss/nav";
 @import "bootstrap/scss/navbar";
 @import "bootstrap/scss/card";
@@ -34,14 +30,13 @@
 @import "bootstrap/scss/progress";
 @import "bootstrap/scss/list-group";
 @import "bootstrap/scss/close";
-
-// Components w/ JavaScript
 @import "bootstrap/scss/modal";
 @import "bootstrap/scss/tooltip";
 @import "bootstrap/scss/popover";
 // @import "bootstrap/scss/carousel";
 
-// Helpers & Utilities
+// Helpers
 @import "bootstrap/scss/helpers";
-@import "bootstrap/scss/utilities";
+
+// Utilities
 @import "bootstrap/scss/utilities/api";

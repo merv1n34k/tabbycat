@@ -6,10 +6,75 @@
 
 [data-bs-theme="dark"] {
 
-  // Layout
+  //----------------------------------------------------------------------------
+  // Lighter accent colors for dark backgrounds (~20% lighter, same hue)
+  //----------------------------------------------------------------------------
+
+  $dm-primary: lighten($purple, 20%);
+  $dm-success: lighten($green, 20%);
+  $dm-info: lighten($blue, 20%);
+  $dm-warning: lighten($orange, 20%);
+  $dm-danger: lighten($red, 20%);
+
+  --bs-primary: #{$dm-primary};
+  --bs-primary-rgb: #{red($dm-primary)}, #{green($dm-primary)}, #{blue($dm-primary)};
+  --bs-success: #{$dm-success};
+  --bs-success-rgb: #{red($dm-success)}, #{green($dm-success)}, #{blue($dm-success)};
+  --bs-info: #{$dm-info};
+  --bs-info-rgb: #{red($dm-info)}, #{green($dm-info)}, #{blue($dm-info)};
+  --bs-warning: #{$dm-warning};
+  --bs-warning-rgb: #{red($dm-warning)}, #{green($dm-warning)}, #{blue($dm-warning)};
+  --bs-danger: #{$dm-danger};
+  --bs-danger-rgb: #{red($dm-danger)}, #{green($dm-danger)}, #{blue($dm-danger)};
+
+  --bs-link-color: #{$dm-primary};
+  --bs-link-color-rgb: #{red($dm-primary)}, #{green($dm-primary)}, #{blue($dm-primary)};
+  --bs-link-hover-color: #{lighten($purple, 25%)};
+  --bs-link-hover-color-rgb: #{red(lighten($purple, 25%))}, #{green(lighten($purple, 25%))}, #{blue(lighten($purple, 25%))};
+
+  // Buttons
+  @each $name, $base in (primary: $purple, success: $green, info: $blue, warning: $orange, danger: $red) {
+    .btn-#{$name} {
+      --bs-btn-bg: #{lighten($base, 20%)};
+      --bs-btn-border-color: #{lighten($base, 20%)};
+      --bs-btn-hover-bg: #{lighten($base, 15%)};
+      --bs-btn-hover-border-color: #{lighten($base, 15%)};
+      --bs-btn-active-bg: #{lighten($base, 10%)};
+      --bs-btn-active-border-color: #{lighten($base, 10%)};
+    }
+
+    .text-bg-#{$name} {
+      background-color: #{lighten($base, 20%)} !important;
+    }
+
+    .alert-#{$name} {
+      --bs-alert-bg: #{rgba(lighten($base, 20%), 0.15)};
+      --bs-alert-color: #{lighten($base, 30%)};
+      --bs-alert-border-color: #{rgba(lighten($base, 20%), 0.3)};
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  // Navbar & Footer
+  //----------------------------------------------------------------------------
+
   .navbar-light {
     background: var(--bs-body-bg);
     border-color: var(--bs-border-color);
+  }
+
+  .navbar .dropdown-menu .dropdown-item {
+    color: var(--bs-body-color);
+
+    &:hover {
+      color: var(--bs-primary);
+      background-color: var(--bs-tertiary-bg);
+    }
+
+    &.active,
+    &:focus {
+      color: var(--bs-body-color);
+    }
   }
 
   .footer a {
@@ -17,7 +82,10 @@
     color: var(--bs-body-color);
   }
 
+  //----------------------------------------------------------------------------
   // Sidebar (already dark; just ensure consistency)
+  //----------------------------------------------------------------------------
+
   .admin-sidebar > .list-group > .list-group-item {
     background: $sidebar-bg;
   }
@@ -26,7 +94,10 @@
     background: $sidebar-bg;
   }
 
+  //----------------------------------------------------------------------------
   // Tables
+  //----------------------------------------------------------------------------
+
   .table {
     background: var(--bs-body-bg);
   }
@@ -38,9 +109,52 @@
 
   .table > tbody > tr:hover td {
     background-color: var(--bs-tertiary-bg);
+
+    .hide-underline {
+      border-bottom-color: var(--bs-tertiary-bg);
+    }
   }
 
+  .table.hide-hover > tbody > tr:hover td .hide-underline {
+    border-bottom-color: var(--bs-border-color);
+  }
+
+  //----------------------------------------------------------------------------
+  // Allocations — hardcoded #fff borders
+  //----------------------------------------------------------------------------
+
+  .inline-adjudicator {
+    border-color: var(--bs-body-bg);
+  }
+
+  .inline-team {
+    border-color: var(--bs-body-bg);
+  }
+
+  .draw-row {
+    background: var(--bs-body-bg);
+  }
+
+  .draw-cell.droppable-cell {
+    border-bottom-color: var(--bs-body-bg);
+  }
+
+  .draw-team-cell > .conflictable {
+    border-color: var(--bs-body-bg);
+  }
+
+  .panel-incomplete .btn {
+    color: var(--bs-body-color);
+  }
+
+  .bg-bg {
+    background-color: var(--bs-body-bg);
+  }
+
+  //----------------------------------------------------------------------------
   // Drag and drop
+  //----------------------------------------------------------------------------
+
   .vue-draggable {
     background: var(--bs-body-bg);
   }
@@ -53,33 +167,162 @@
     background: var(--bs-body-bg);
   }
 
-  // Buttons with outline - remove white bg
+  .draggable-panel.vue-draggable {
+    border-color: var(--bs-border-color);
+
+    &:hover .panel-handle {
+      background: var(--bs-secondary-bg);
+
+      .feather {
+        color: var(--bs-body-color);
+      }
+    }
+
+    .panel-handle:hover {
+      background: var(--bs-primary);
+
+      .feather {
+        color: #fff;
+      }
+    }
+  }
+
+  .vue-draggable:hover .vc-title,
+  .vue-draggable:hover .vue-draggable:hover .vc-title,
+  .vue-draggable:hover .vue-draggable-dragging .vc-title {
+    color: #fff;
+  }
+
+  //----------------------------------------------------------------------------
+  // Buttons with outline
+  //----------------------------------------------------------------------------
+
   @each $color, $value in $theme-colors {
     .btn-outline-#{$color} {
       background-color: transparent;
     }
   }
 
-  // Form errors
+  //----------------------------------------------------------------------------
+  // Forms
+  //----------------------------------------------------------------------------
+
   .errorlist,
   label.error {
     color: var(--bs-danger);
   }
 
-  // Allocation panel colors survive dark mode (they're semantic)
+  .checkInForm {
+    border-color: var(--bs-border-color);
+  }
 
-  // Popover adjustments
+  //----------------------------------------------------------------------------
+  // Popovers & tooltips
+  //----------------------------------------------------------------------------
+
   .popover {
     --bs-popover-bg: var(--bs-body-bg);
   }
 
+  .tooltip-trigger {
+    border-bottom-color: var(--bs-border-color);
+  }
+
+  //----------------------------------------------------------------------------
   // Slideover info panel
+  //----------------------------------------------------------------------------
+
   .slideover-info {
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
   }
 
-  // Scrollbar hint for allocation droppables
-  .draggable-panel.vue-draggable {
-    border-color: var(--bs-border-color);
+  //----------------------------------------------------------------------------
+  // D3 graphs / datavis
+  //----------------------------------------------------------------------------
+
+  .d3-graph {
+    .axis path,
+    .axis line {
+      stroke: var(--bs-border-color);
+    }
+  }
+
+  .d3-feedback-trend {
+    .tick line,
+    .axis line {
+      stroke: var(--bs-border-color);
+    }
+  }
+
+  .d3-hover-black:hover {
+    fill: var(--bs-body-color);
+  }
+
+  //----------------------------------------------------------------------------
+  // Progress bars
+  //----------------------------------------------------------------------------
+
+  .progress-empty span {
+    color: var(--bs-body-color);
+  }
+
+  .progress-points-3 {
+    background: rgba(255, 255, 255, 0.9);
+    color: #000;
+  }
+
+  .progress-points-2 {
+    background: rgba(255, 255, 255, 0.7);
+    color: #000;
+  }
+
+  .progress-points-1 {
+    background: rgba(255, 255, 255, 0.5);
+    color: #000;
+  }
+
+  .progress-points-0 {
+    background: rgba(255, 255, 255, 0.3);
+    color: #000;
+  }
+
+  //----------------------------------------------------------------------------
+  // Interaction
+  //----------------------------------------------------------------------------
+
+  .item-submit:hover {
+    background-color: var(--bs-tertiary-bg) !important;
+  }
+
+  //----------------------------------------------------------------------------
+  // Active list-group items
+  //----------------------------------------------------------------------------
+
+  .list-group-item.active a {
+    color: var(--bs-body-bg);
+  }
+
+  //----------------------------------------------------------------------------
+  // Text color utilities (use lighter accents)
+  //----------------------------------------------------------------------------
+
+  .text-primary {
+    color: var(--bs-primary) !important;
+  }
+
+  .text-success {
+    color: var(--bs-success) !important;
+  }
+
+  .text-info {
+    color: var(--bs-info) !important;
+  }
+
+  .text-warning {
+    color: var(--bs-warning) !important;
+  }
+
+  .text-danger {
+    color: var(--bs-danger) !important;
   }
 }

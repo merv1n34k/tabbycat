@@ -60,12 +60,13 @@
       <div class="col mt-2">
         <ul class="nav justify-content-center">
           <li class="nav-item p-2">
-            <button class="btn btn-link nav-link p-0 d-inline-block" id="theme-toggle" type="button"
-                    aria-label="{% trans 'Toggle theme' %}" title="{% trans 'Toggle theme' %}">
-              <i data-feather="sun" class="theme-icon-light" style="display:none"></i>
-              <i data-feather="moon" class="theme-icon-dark" style="display:none"></i>
-              <i data-feather="monitor" class="theme-icon-auto" style="display:none"></i>
-            </button>
+            <i data-feather="sun" class="theme-icon-light" style="display:none"></i>
+            <i data-feather="moon" class="theme-icon-dark" style="display:none"></i>
+            <i data-feather="monitor" class="theme-icon-auto" style="display:none"></i>
+            <a class="nav-link p-0 d-inline-block" href="#" id="theme-toggle"
+               role="button" aria-label="{% trans 'Toggle theme' %}" title="{% trans 'Toggle theme' %}">
+              {% trans "Theme" %}
+            </a>
           </li>
           <li class="nav-item p-2">
             <i data-feather="globe"></i>

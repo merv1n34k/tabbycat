@@ -26,7 +26,6 @@
   --bs-warning-rgb: #{red($dm-warning)}, #{green($dm-warning)}, #{blue($dm-warning)};
   --bs-danger: #{$dm-danger};
   --bs-danger-rgb: #{red($dm-danger)}, #{green($dm-danger)}, #{blue($dm-danger)};
-
   --bs-link-color: #{$dm-primary};
   --bs-link-color-rgb: #{red($dm-primary)}, #{green($dm-primary)}, #{blue($dm-primary)};
   --bs-link-hover-color: #{lighten($purple, 25%)};
@@ -196,7 +195,6 @@
   //----------------------------------------------------------------------------
   // Buttons with outline
   //----------------------------------------------------------------------------
-
   @each $color, $value in $theme-colors {
     .btn-outline-#{$color} {
       background-color: transparent;
@@ -241,6 +239,7 @@
   //----------------------------------------------------------------------------
 
   .d3-graph {
+
     .axis path,
     .axis line {
       stroke: var(--bs-border-color);
@@ -248,6 +247,7 @@
   }
 
   .d3-feedback-trend {
+
     .tick line,
     .axis line {
       stroke: var(--bs-border-color);

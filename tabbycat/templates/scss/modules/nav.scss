@@ -76,6 +76,7 @@
   border-radius: 0;
   border-left: 0;
   border-right: 0;
+  border-color: darken($sidebar-bg, 5%);
   padding: 0;
 
   a,
@@ -308,7 +309,6 @@
     z-index: $z_2;
   }
 
-  .admin-sidebar .list-group .collapse.in,
   .admin-sidebar .list-group .collapsing,
   .admin-sidebar .list-group .collapse.show {
     z-index: $z_2;

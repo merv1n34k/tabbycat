@@ -55,9 +55,7 @@ const copyTableTrigger = (i) => {
           type="search"
           :placeholder="gettext('Find in Table')"
         >
-        <div class="input-group-append">
-          <span class="input-group-text"><i data-feather="search" /></span>
-        </div>
+        <span class="input-group-text"><i data-feather="search" /></span>
         <div
           v-for="(table, i) in tablesData"
           :key="i"

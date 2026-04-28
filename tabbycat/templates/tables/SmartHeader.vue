@@ -48,7 +48,7 @@ const showTooltip = (event) => {
         <span>{{ header.title }}</span>
       </div>
 
-      <div :class="['mr-auto', sortClasses(header['key'])]">
+      <div :class="['me-auto', sortClasses(header['key'])]">
         <i data-feather="chevrons-down" />
         <i data-feather="chevrons-up" />
       </div>

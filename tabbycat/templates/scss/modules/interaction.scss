@@ -57,10 +57,6 @@
     padding: 0.5rem 0.75rem;
   }
 
-  .bs-tether-element-attached-top::after,
-  .bs-tether-element-attached-top::before {
-    left: 25%;
-  }
 }
 @media (max-width: breakpoint-min(sm, $grid-breakpoints)) {
 

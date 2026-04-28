@@ -181,7 +181,7 @@ onMounted(async () => {
           <span class="mt-2" />
           <label
             :for="'dupeCheck' + speaker.position"
-            :class="['ml-2 hoverable', blindDuplicateMatches ? '' : 'text-danger']"
+            :class="['ms-2 hoverable', blindDuplicateMatches ? '' : 'text-danger']"
           >
             Mark as a duplicate speech
           </label>
@@ -253,7 +253,7 @@ onMounted(async () => {
           <span class="mt-2" />
           <label
             :for="'check' + speaker.position"
-            :class="['ml-2 hoverable', blindDuplicateMatches ? '' : 'text-danger']"
+            :class="['ms-2 hoverable', blindDuplicateMatches ? '' : 'text-danger']"
           >
             Mark as a duplicate speech
           </label>

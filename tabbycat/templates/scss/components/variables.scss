@@ -96,7 +96,7 @@ $footer-height: 175px;
 // For diversity and allocation highlights
 @mixin hover-highlights($baseColor, $textColor: #fff) {
   background-color: $baseColor;
-  border-color: darken($baseColor, 5);
+  border-color: darken($baseColor, 5%);
   color: $textColor;
 
   h4,

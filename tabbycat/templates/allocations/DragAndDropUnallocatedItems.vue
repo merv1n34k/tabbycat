@@ -169,7 +169,7 @@ onBeforeUnmount(() => {
         <div class="small mt-2 ps-1 text-muted text-unselectable">
           <span
             v-for="(value, key) in sorts"
-            :class="['pr-2', value.active ? 'fw-bold' : 'hoverable']"
+            :class="['pe-2', value.active ? 'fw-bold' : 'hoverable']"
             @click="setSort(key)"
           >{{ gettext(value.label) }}</span>
         </div>
@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
             Show Available ({{ filteredAvailable.length }})
           </span>
           <span
-            :class="['pl-2', showUnavailable ? 'fw-bold' : 'hoverable']"
+            :class="['ps-2', showUnavailable ? 'fw-bold' : 'hoverable']"
             @click="showUnavailable = true"
           >
             Show All ({{ filteredAll.length }})

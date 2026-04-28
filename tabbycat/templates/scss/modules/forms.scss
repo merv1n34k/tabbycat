@@ -40,6 +40,20 @@
 }
 
 //------------------------------------------------------------------------------
+// BS4 compatibility (classes removed in BS5)
+//------------------------------------------------------------------------------
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-inline {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}
+
+//------------------------------------------------------------------------------
 // Inputs (in general)
 //------------------------------------------------------------------------------
 
@@ -69,6 +83,21 @@ input[type="range"] {
   .form-check label,
   label.form-check-label {
     padding-top: 0;
+  }
+
+  // Large centered toggle switches for preference forms
+  .form-check.form-switch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding-left: 3.5em;
+
+    .form-check-input {
+      width: 3em;
+      height: 1.5em;
+      margin-top: 0;
+    }
   }
 }
 

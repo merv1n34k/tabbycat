@@ -85,6 +85,15 @@ $link-color:                $purple;
 $link-decoration:           none;
 $link-hover-decoration:     underline;
 
+// Focus ring (BS5.3): tint focus highlight with the primary brand color
+$focus-ring-width:           0.2rem;
+$focus-ring-opacity:         0.25;
+$focus-ring-color:           rgba($purple, $focus-ring-opacity);
+$focus-ring-blur:            0;
+$input-btn-focus-color:      rgba($purple, $focus-ring-opacity);
+$input-btn-focus-width:      $focus-ring-width;
+$input-btn-focus-box-shadow: 0 0 0 $input-btn-focus-width $input-btn-focus-color;
+
 //------------------------------------------------------------------------------
 // BS4→BS5 spacing compatibility overrides
 // BS5 changed many default padding/margin values; restore BS4 defaults

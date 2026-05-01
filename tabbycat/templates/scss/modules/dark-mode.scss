@@ -41,6 +41,18 @@
       --bs-btn-active-bg: #{lighten($base, 10%)};
       --bs-btn-active-border-color: #{lighten($base, 10%)};
     }
+  }
+
+  // In dark mode the lighter button bgs need dark text for legibility
+  .btn-success,
+  .btn-warning,
+  .btn-info {
+    --bs-btn-color: #000;
+    --bs-btn-hover-color: #000;
+    --bs-btn-active-color: #000;
+    --bs-btn-disabled-color: #000;
+  }
+  @each $name, $base in (primary: $purple, success: $green, info: $blue, warning: $orange, danger: $red) {
 
     .text-bg-#{$name} {
       background-color: #{lighten($base, 20%)} !important;

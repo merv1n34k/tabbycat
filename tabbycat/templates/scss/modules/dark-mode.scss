@@ -131,51 +131,19 @@
   }
 
   //----------------------------------------------------------------------------
-  // Allocations — hardcoded #fff borders
+  // Allocations
   //----------------------------------------------------------------------------
-
-  .inline-adjudicator {
-    border-color: var(--bs-body-bg);
-  }
-
-  .inline-team {
-    border-color: var(--bs-body-bg);
-  }
-
-  .draw-row {
-    background: var(--bs-body-bg);
-  }
-
-  .draw-cell.droppable-cell {
-    border-bottom-color: var(--bs-body-bg);
-  }
-
-  .draw-team-cell > .conflictable {
-    border-color: var(--bs-body-bg);
-  }
 
   .panel-incomplete .btn {
     color: var(--bs-body-color);
-  }
-
-  .bg-bg {
-    background-color: var(--bs-body-bg);
   }
 
   //----------------------------------------------------------------------------
   // Drag and drop
   //----------------------------------------------------------------------------
 
-  .vue-draggable {
-    background: var(--bs-body-bg);
-  }
-
   .vue-droppable {
     background: var(--bs-secondary-bg);
-  }
-
-  .vue-droppable.vue-droppable-locked {
-    background: var(--bs-body-bg);
   }
 
   .draggable-panel.vue-draggable {

@@ -66,7 +66,7 @@ h6,
 }
 
 .list-group-item.active a {
-  color: $alt-bg; // If using a bg color; ensure the links aren't the same color
+  color: $white; // If using a bg color; ensure the links aren't the same color
   text-decoration: underline;
 }
 

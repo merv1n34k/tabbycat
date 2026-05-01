@@ -3,7 +3,7 @@
 //------------------------------------------------------------------------------
 
 .navbar-light {
-  background: $navbar-light-bg;
+  background: var(--bs-body-bg);
   border-bottom: 1px solid $navbar-light-border;
   border-top: 1px solid $navbar-light-border;
 

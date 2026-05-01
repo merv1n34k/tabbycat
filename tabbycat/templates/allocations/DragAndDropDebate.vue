@@ -48,7 +48,7 @@ const liveness = computed(() => {
 </script>
 
 <template>
-  <div class="d-flex border-bottom bg-white">
+  <div class="d-flex border-bottom bg-body">
     <slot
       v-if="!isElimination"
       name="bracket"

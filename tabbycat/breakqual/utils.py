@@ -21,9 +21,14 @@ def get_breaking_teams(category, prefetch=(), rankings=('rank',)):
     `rankings` is passed to `rankings` in the TeamStandingsGenerator.
     """
     teams = category.breaking_teams.all().prefetch_related(*prefetch)
-    metrics = category.tournament.pref('team_standings_precedence')
-    generator = TeamStandingsGenerator(metrics, rankings)
-    standings = generator.generate(teams, tournament=category.tournament)
+
+    if category.rule == 'fight-club':
+        from speakershuffler.breakqual import generate_fight_club_standings
+        standings = generate_fight_club_standings(category, teams)
+    else:
+        metrics = category.tournament.pref('team_standings_precedence')
+        generator = TeamStandingsGenerator(metrics, rankings)
+        standings = generator.generate(teams, tournament=category.tournament)
 
     breakingteams_by_team_id = {bt.team_id: bt for bt in category.breakingteam_set.all()}
 

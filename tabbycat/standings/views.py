@@ -69,15 +69,22 @@ class StandingsIndexView(AdministratorMixin, RoundMixin, TemplateView):
             'debate_team__team',
             'debate_team__debate__round',
             'debate_team__team__institution',
-        )
+        ).prefetch_related('debate_team__team__speaker_set')
         if self.tournament.pref('teams_in_debate') == 4:
             team_scores.filter(debate_team__debate__round__stage=Round.Stage.PRELIMINARY)
             kwargs["top_team_scores"] = team_scores.order_by('-score')[:9]
             kwargs["bottom_team_scores"] = team_scores.order_by('score')[:9]
         else:
             team_scores = team_scores.filter(margin__gte=0)
-            kwargs["top_margins"] = team_scores.order_by('-margin')[:9]
-            kwargs["bottom_margins"] = team_scores.order_by('margin')[:9]
+            top_margins = list(team_scores.order_by('-margin')[:9])
+            bottom_margins = list(team_scores.order_by('margin')[:9])
+            # Pre-populate opponents so template doesn't trigger N+1 queries
+            # without speaker_set prefetch
+            from draw.prefetch import populate_opponents
+            debate_teams = [ts.debate_team for ts in top_margins + bottom_margins]
+            populate_opponents(debate_teams)
+            kwargs["top_margins"] = top_margins
+            kwargs["bottom_margins"] = bottom_margins
 
         if self.tournament.pref('motion_vetoes_enabled'):
             motions = Motion.objects.filter(
@@ -251,7 +258,11 @@ class BaseSpeakerStandingsView(BaseStandingsView):
         table.add_team_columns([info.speaker.team for info in standings])
 
         scores_headers = [{'key': escape(round.abbreviation), 'title': escape(round.abbreviation)} for round in rounds]
-        scores_data = [[metricformat(x) if x is not None else '—' for x in standing.scores] for standing in standings]
+        if self.tournament.pref('fight_club_mode'):
+            from speakershuffler.metrics import format_scores_with_pw
+            scores_data = format_scores_with_pw(standings, rounds, self.tournament)
+        else:
+            scores_data = [[metricformat(x) if x is not None else '—' for x in standing.scores] for standing in standings]
         table.add_columns(scores_headers, scores_data)
         table.add_metric_columns(standings, integer_score_columns=self.integer_score_columns(rounds))
 
@@ -429,6 +440,8 @@ class BaseTeamStandingsView(BaseStandingsView):
         return self.tournament.team_set.exclude(type=Team.TYPE_BYE)
 
     def get_standings(self):
+        if self.tournament.pref('fight_club_mode'):
+            raise StandingsError(_("Team standings are not available in Fight Club mode — teams change each round."))
         if self.round is None:
             raise StandingsError(_("The tab can't be displayed because all rounds so far in this tournament are silent."))
 
@@ -560,6 +573,12 @@ class PublicBreakCategoryTabView(PublicTabMixin, BaseBreakCategoryStandingsView)
 class PublicCurrentTeamStandingsView(PublicTournamentPageMixin, VueTableTemplateView):
 
     public_page_preference = 'public_team_standings'
+
+    def is_page_enabled(self, tournament):
+        if tournament.pref('fight_club_mode'):
+            return False
+        return super().is_page_enabled(tournament)
+
     page_title = gettext_lazy("Current Team Standings")
     page_emoji = '🌟'
     cache_timeout = settings.PUBLIC_SLOW_CACHE_TIMEOUT

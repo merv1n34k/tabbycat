@@ -123,6 +123,28 @@
       </div>
     </div>
 
+    {% if pref.fight_club_mode and round.seq > 1 %}
+    <div class="col mt-md-0 mt-3">
+      <div class="card">
+
+        <div class="card-body">
+          <h5 class="card-title mb-0">{% trans "Speaker Shuffle" %}</h5>
+        </div>
+
+        <div class="list-group list-group-flush">
+          {% roundurl 'speaker-shuffle-edit' as url %}
+          {% trans "Edit shuffled speaker assignments" as title %}
+          {% include "components/item-action.html" with text=title type="primary" %}
+
+          {% roundurl 'speaker-shuffle-history' as url %}
+          {% trans "View shuffle history" as title %}
+          {% include "components/item-action.html" with text=title type="primary" %}
+        </div>
+
+      </div>
+    </div>
+    {% endif %}
+
     {% with sides_unconfirmed=round.num_debates_with_sides_unconfirmed %}
       {% if sides_unconfirmed > 0 and pref.draw_side_allocations != 'manual-ballot' %}
         <div class="col mt-md-0 mt-3">

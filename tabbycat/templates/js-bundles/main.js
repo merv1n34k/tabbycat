@@ -21,6 +21,8 @@ import EditDebateAdjudicatorsContainer from '../../adjallocation/templates/EditD
 import EditPanelAdjudicatorsContainer from '../../adjallocation/templates/EditPanelAdjudicatorsContainer.vue'
 import EditDebateTeamsContainer from '../../draw/templates/EditDebateTeamsContainer.vue'
 import EditDebateVenuesContainer from '../../venues/templates/EditDebateVenuesContainer.vue'
+// Speaker Shuffler
+import EditSpeakerShuffleContainer from '../../speakershuffler/templates/EditSpeakerShuffleContainer.vue'
 import { useDragAndDropStore } from '../../templates/allocations/DragAndDropStore'
 
 // Setup the main constructs used for custom components
@@ -188,6 +190,8 @@ vueComponents.EditDebateAdjudicatorsContainer = EditDebateAdjudicatorsContainer
 vueComponents.EditPanelAdjudicatorsContainer = EditPanelAdjudicatorsContainer
 vueComponents.EditDebateTeamsContainer = EditDebateTeamsContainer
 vueComponents.EditDebateVenuesContainer = EditDebateVenuesContainer
+// Speaker Shuffler
+vueComponents.EditSpeakerShuffleContainer = EditSpeakerShuffleContainer
 // Ballots New
 vueComponents.BallotEntryContainer = BallotEntryContainer
 

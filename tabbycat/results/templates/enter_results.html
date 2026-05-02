@@ -65,8 +65,10 @@
   {{ block.super }}
   <script src="{% static 'js/vendor/jquery.validate.js' %}"></script>
   <script>
-    $(document).ready( function() {
-      {% include "js-bundles/enter_results.js" %}
-    });
+    (function($) {
+      $(document).ready( function() {
+        {% include "js-bundles/enter_results.js" %}
+      });
+    })(jQuery);
   </script>
 {% endblock %}

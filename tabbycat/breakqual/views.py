@@ -65,6 +65,8 @@ class BaseBreakingTeamsView(SingleObjectFromTournamentMixin, VueTableTemplateVie
 
     def get_table(self):
         self.standings = self.get_standings()
+        if self.object.rule == 'fight-club':
+            return self._get_fight_club_table()
         table = TabbycatTableBuilder(view=self, title=escape(self.object.name), sort_key='Rk')
         table.add_ranking_columns(self.standings)
         table.add_column({'title': _("Break"), 'key': 'break'},
@@ -72,6 +74,10 @@ class BaseBreakingTeamsView(SingleObjectFromTournamentMixin, VueTableTemplateVie
         table.add_team_columns([tsi.team for tsi in self.standings])
         table.add_metric_columns(self.standings)
         return table
+
+    def _get_fight_club_table(self):
+        from speakershuffler.break_views import build_fight_club_break_table
+        return build_fight_club_break_table(self, self.object, self.standings)
 
     def get_page_title(self):
         return _("%(category)s Break") % {'category': self.object.name}
@@ -158,6 +164,8 @@ class BreakingTeamsFormView(GenerateBreakMixin, LogActionMixin, AdministratorMix
                 rankings=BreakGenerator(self.object).rankings)
 
     def get_table(self):
+        if self.object.rule == 'fight-club':
+            return super().get_table()  # speaker-based table, no remark columns
         table = super().get_table()  # as for public view, but add some more columns
         table.add_column(
             {'key': 'eligible-for', 'title': _("Eligible for")},
@@ -285,7 +293,7 @@ class EditBreakCategoriesView(EditSpeakerCategoriesView):
 
     def get_formset_factory_kwargs(self):
         return {
-            'fields': ('name', 'tournament', 'slug', 'break_size', 'is_general', 'priority', 'limit'),
+            'fields': ('name', 'tournament', 'slug', 'break_size', 'is_general', 'priority', 'limit', 'rule'),
             'extra': 2,
             'widgets': {
                 'tournament': HiddenInput,

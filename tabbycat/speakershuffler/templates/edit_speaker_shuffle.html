@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load i18n debate_tags %}
+
+{% block head-title %}{% trans "Edit Speaker Shuffle" %}{% endblock %}
+{% block page-title %}{% trans "Edit Speaker Shuffle" %}{% endblock %}
+
+{% block page-subnav-sections %}
+  <a class="btn btn-outline-primary" href="{% roundurl 'availability-index' %}">
+    <i data-feather="chevron-left"></i> {% trans "Availability" %}
+  </a>
+
+  <form action="{% roundurl 'speaker-shuffle-perform' %}" method="POST" class="d-inline">
+    {% csrf_token %}
+    <button class="btn btn-primary" type="submit" id="shuffleBtn">
+      <i data-feather="shuffle"></i>
+      {% if has_shuffle_log %}
+        {% trans "Re-Shuffle Speakers" %}
+      {% else %}
+        {% trans "Shuffle Speakers" %}
+      {% endif %}
+    </button>
+  </form>
+
+  {% if has_shuffle_log %}
+    <a class="btn btn-outline-secondary" href="{% roundurl 'speaker-shuffle-history' %}">
+      <i data-feather="clock"></i> {% trans "History" %}
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block page-subnav-actions %}
+  {% if draw_exists %}
+    <a class="btn btn-outline-success" href="{% roundurl 'draw' round %}">
+      {% trans "View Draw" %} <i data-feather="chevron-right"></i>
+    </a>
+  {% elif has_shuffle_log %}
+    <form id="createForm" action="{% roundurl 'draw-create' %}" method="POST">
+      {% csrf_token %}
+      <button class="btn btn-success" id="createDraw">
+        {% trans "Generate Draw" %} <i data-feather="chevron-right"></i>
+      </button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block extra-css %}
+  <style>
+    .footer { display: none !important; }
+    body { margin-bottom: 0 !important; }
+  </style>
+{% endblock extra-css %}
+
+{% block content %}
+
+  {% if not has_shuffle_log and teams_count > 0 %}
+    <div class="alert alert-info">
+      <i data-feather="info"></i>
+      {% trans "Speakers have not been shuffled yet for this round. Click \"Shuffle Speakers\" above to auto-assign speakers to new teams." %}
+    </div>
+  {% endif %}
+
+  {% if teams_count == 0 %}
+    <div class="alert alert-warning">
+      <i data-feather="alert-triangle"></i>
+      {% trans "No teams are available for this round. Please set team availability first." %}
+    </div>
+  {% endif %}
+
+  <div id="vueMount">
+    <edit-speaker-shuffle-container
+      :initial-teams="initialTeams"
+      :pair-history="pairHistory"
+      :speaker-conflicts="speakerConflicts"
+      :speaker-points="speakerPoints"
+      :speaker-weighted-scores="speakerWeightedScores"
+      :speakers-per-team="speakersPerTeam"
+      :save-url="saveUrl"
+    ></edit-speaker-shuffle-container>
+  </div>
+
+{% endblock content %}
+
+{% block js %}
+  <script>
+    window.vueData = {
+      initialTeams: {{ shuffle_data_json|safe }},
+      pairHistory: {{ pair_history_json|safe }},
+      speakerConflicts: {{ speaker_conflicts_json|safe }},
+      speakerPoints: {{ speaker_points_json|safe }},
+      speakerWeightedScores: {{ speaker_weighted_scores_json|safe }},
+      speakersPerTeam: {{ speakers_per_team }},
+      saveUrl: "{{ save_url }}",
+    }
+  </script>
+  {{ block.super }}
+{% endblock js %}

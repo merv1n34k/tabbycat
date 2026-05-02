@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load debate_tags i18n %}
+
+{% block head-title %}{% trans "Generate Slides" %}{% endblock %}
+{% block page-title %}{% trans "Generate Slides" %}{% endblock %}
+
+{% block content %}
+
+<div class="row">
+
+  <div class="col-lg-8 ml-lg-auto mr-md-auto">
+
+    <div class="card">
+      <form action="." method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      {% trans "Generate Slides" context "page title" as title %}
+      {% trans "Select a round, choose the photos folder and template image, then click Generate to download a ZIP of per-room PNG slides." as text %}
+      {% include "components/form-title.html" with emoji="🖼" %}
+
+      {% include "components/form-main.html" %}
+
+      {% trans "Generate" as title %}
+      {% include "components/form-submit.html" %}
+
+      </form>
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

@@ -59,6 +59,16 @@
     {% trans "Add/Edit Team-Institution Conflicts" as text %}
     {% include "components/item-action.html" with emoji="🐒" %}
 
+    {% if pref.fight_club_mode %}
+      {% tournamenturl 'adjallocation-conflicts-adj-speaker' as url %}
+      {% trans "Add/Edit Adjudicator-Speaker Conflicts" as text %}
+      {% include "components/item-action.html" with emoji="🥷" %}
+
+      {% tournamenturl 'speakershuffler-conflicts' as url %}
+      {% trans "Add/Edit Speaker-Speaker Conflicts" as text %}
+      {% include "components/item-action.html" with emoji="🥊" %}
+    {% endif %}
+
   </ul>
   <ul class="list-group mt-3">
 

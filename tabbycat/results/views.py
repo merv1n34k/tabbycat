@@ -166,6 +166,8 @@ class PublicResultsForRoundView(RoundMixin, PublicTournamentPageMixin, VueTableT
     cache_timeout = settings.PUBLIC_SLOW_CACHE_TIMEOUT
 
     def get_table(self):
+        if self.tournament.pref('fight_club_mode'):
+            return self.get_table_by_debate()
         view_type = self.request.session.get('results_view', self.default_view)
         if view_type == 'debate':
             return self.get_table_by_debate()
@@ -515,6 +517,13 @@ class BaseEditBallotSetView(SingleObjectFromTournamentMixin, BaseBallotSetView):
         self.round_motions = {}
         for rm in RoundMotion.objects.filter(round_id=self.debate.round_id):
             self.round_motions[rm.motion_id] = rm
+
+        # In Fight Club mode, speakers shuffle between teams each round.
+        # Patch the prefetched speaker_set so the form's speaker dropdowns
+        # show the speakers who actually debated in this round, not whoever
+        # the FK currently points to.
+        if self.tournament.pref('fight_club_mode'):
+            self.debate.round._patch_historical_speakers([self.debate])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

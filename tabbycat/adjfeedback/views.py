@@ -220,6 +220,13 @@ class FeedbackMixin(TournamentMixin):
         populate_debate_adjudicators(feedbacks)
         populate_wins_for_debateteams([f.source_team for f in feedbacks if f.source_team is not None])
 
+        # In FC mode, patch source team names with historical names from the
+        # round the feedback was given (current speaker_set is wrong after
+        # break generation reassigns speakers).
+        if self.tournament.pref('fight_club_mode'):
+            from speakershuffler.feedback import patch_feedback_source_names
+            patch_feedback_source_names(feedbacks, self.tournament)
+
         # Can't prefetch an abstract model effectively; so get all answers...
         questions = list(self.tournament.adj_feedback_questions.prefetch_related('answer_set'))
         if self.only_comments:
@@ -357,6 +364,9 @@ class FeedbackFromTeamView(FeedbackFromSourceView):
     adjfeedback_filter_field = 'source_team__team'
     allow_null_tournament = False
 
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('speaker_set')
+
 
 class FeedbackFromAdjudicatorView(FeedbackFromSourceView):
     """View displaying feedback from a given adjudicator."""
@@ -368,24 +378,38 @@ class FeedbackFromAdjudicatorView(FeedbackFromSourceView):
 
 class BaseAddFeedbackIndexView(TournamentMixin, VueTableTemplateView):
 
+    def _build_fight_club_team_table(self, table, tournament):
+        from speakershuffler.feedback import build_fight_club_team_table
+        build_fight_club_team_table(table, tournament, self._fc_team_link)
+
+    def _fc_team_link(self, team_pk, round_id):
+        class _Stub:
+            id = team_pk
+        return self.get_from_team_link(_Stub()) + '?round=%d' % round_id
+
     def get_tables(self):
         tournament = self.tournament
 
         use_code_names = use_team_code_names_data_entry(self.tournament, self.tabroom)
-        teams_table = TabbycatTableBuilder(view=self, sort_key="team", title=_("A Team"))
-        add_link_data = [{
-            'text': conditional_escape(team_name_for_data_entry(team, use_code_names)),
-            'link': self.get_from_team_link(team),
-        } for team in tournament.team_set.all()]
-        header = {'key': 'team', 'title': _("Team")}
-        teams_table.add_column(header, add_link_data)
 
-        if tournament.pref('show_team_institutions'):
-            teams_table.add_column({
-                'key': 'institution',
-                'icon': 'home',
-                'tooltip': _("Institution"),
-            }, [escape(team.institution.code) if team.institution else TabbycatTableBuilder.BLANK_TEXT for team in tournament.team_set.all()])
+        teams_table = TabbycatTableBuilder(view=self, sort_key="team", title=_("A Team"))
+
+        if tournament.pref('fight_club_mode'):
+            self._build_fight_club_team_table(teams_table, tournament)
+        else:
+            add_link_data = [{
+                'text': conditional_escape(team_name_for_data_entry(team, use_code_names)),
+                'link': self.get_from_team_link(team),
+            } for team in tournament.team_set.all()]
+            header = {'key': 'team', 'title': _("Team")}
+            teams_table.add_column(header, add_link_data)
+
+            if tournament.pref('show_team_institutions'):
+                teams_table.add_column({
+                    'key': 'institution',
+                    'icon': 'home',
+                    'tooltip': _("Institution"),
+                }, [escape(team.institution.code) if team.institution else TabbycatTableBuilder.BLANK_TEXT for team in tournament.team_set.all()])
 
         adjs_table = TabbycatTableBuilder(view=self, sort_key="adjudicator", title=_("An Adjudicator"))
         adjudicators = tournament.adjudicator_set.all()
@@ -466,8 +490,12 @@ class BaseAddFeedbackView(LogActionMixin, SingleObjectFromTournamentMixin, FormV
     action_log_content_object_attr = 'adj_feedback'
 
     def get_form_class(self):
+        kwargs = dict(self.feedback_form_class_kwargs)
+        fc_round_id = self.request.GET.get('round')
+        if fc_round_id:
+            kwargs['fc_round_id'] = int(fc_round_id)
         return make_feedback_form_class(self.object, self.tournament,
-                self.get_submitter_fields(), **self.feedback_form_class_kwargs)
+                self.get_submitter_fields(), **kwargs)
 
     def form_valid(self, form):
         self.adj_feedback = form.save()
@@ -490,10 +518,19 @@ class BaseAddFeedbackView(LogActionMixin, SingleObjectFromTournamentMixin, FormV
         elif isinstance(self.object, Speaker):
             self.source_name = self.get_team_short_name(self.object.team)
         elif isinstance(self.object, Team):
-            self.source_name = self.get_team_short_name(self.object)
+            self.source_name = self._fc_source_name() or self.get_team_short_name(self.object)
         else:
             logger.error("self.object was neither an Adjudicator nor a Speaker")
             self.source_name = "<ERROR>"
+
+    def _fc_source_name(self):
+        """Return the historical FC team name for the requested round, or None."""
+        fc_round_id = self.request.GET.get('round')
+        if not fc_round_id or not self.tournament.pref('fight_club_mode'):
+            return None
+        from speakershuffler.feedback import get_historical_team_names
+        names = get_historical_team_names(self.tournament, self.object.pk)
+        return names.get(int(fc_round_id))
 
     def get(self, request, *args, **kwargs):
         self._populate_source()

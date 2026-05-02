@@ -22,6 +22,8 @@ class Permission(TextChoices):
     EDIT_ADJ_INST_CONFLICTS = 'edit.adjudicatorinstitutionconflict', _("edit adjudicator-institution conflicts")
     VIEW_TEAM_INST_CONFLICTS = 'view.teaminstitutionconflict', _("view team-institution conflicts")
     EDIT_TEAM_INST_CONFLICTS = 'edit.teaminstitutionconflict', _("edit team-institution conflicts")
+    VIEW_ADJ_SPEAKER_CONFLICTS = 'view.adjudicatorspeakerconflict', _("view adjudicator-speaker conflicts")
+    EDIT_ADJ_SPEAKER_CONFLICTS = 'edit.adjudicatorspeakerconflict', _("edit adjudicator-speaker conflicts")
 
     VIEW_ACTIONLOGENTRIES = 'view.actionlogentry', _("view action log entries")
     # EDIT_ACTIONLOGENTRIES omitted as pre-supposed when taking an action

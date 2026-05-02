@@ -6,6 +6,7 @@ from itertools import groupby
 
 from django.db.models import Q
 from django.utils.encoding import force_str
+from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 from breakqual.models import BreakingTeam
@@ -288,3 +289,5 @@ class StandardBreakGenerator(BaseBreakGenerator):
                     break
                 self.breaking_teams.append(tsi)
                 tied_teams_count += 1
+
+

@@ -121,12 +121,13 @@ def make_feedback_form_class(source, tournament, *args, **kwargs):
         arguments to Submission.
     'confirm_on_submit' is a bool, and indicates that this feedback should be
         as confirmed and all others discarded."""
+    fc_round_id = kwargs.pop('fc_round_id', None)
     if isinstance(source, Adjudicator):
         return make_feedback_form_class_for_adj(source, tournament, *args, **kwargs)
     elif isinstance(source, Speaker):
-        return make_feedback_form_class_for_team(source.team, tournament, *args, **kwargs)
+        return make_feedback_form_class_for_team(source.team, tournament, *args, fc_round_id=fc_round_id, **kwargs)
     elif isinstance(source, Team):
-        return make_feedback_form_class_for_team(source, tournament, *args, **kwargs)
+        return make_feedback_form_class_for_team(source, tournament, *args, fc_round_id=fc_round_id, **kwargs)
     else:
         raise TypeError('source must be Adjudicator, Speaker, or Team: %r' % source)
 
@@ -196,7 +197,8 @@ def make_feedback_form_class_for_adj(source, tournament, submission_fields, conf
 
 def make_feedback_form_class_for_team(source, tournament, submission_fields, confirm_on_submit=False,
                                       enforce_required=True, include_unreleased_draws=False,
-                                      use_tournament_password=False, ignored_option=False):
+                                      use_tournament_password=False, ignored_option=False,
+                                      fc_round_id=None):
     """Constructs a FeedbackForm class specific to the given source team.
     Parameters are as for make_feedback_form_class."""
 
@@ -238,6 +240,16 @@ def make_feedback_form_class_for_team(source, tournament, submission_fields, con
     else:
         debates = debates.filter(round__draw_status=Round.Status.RELEASED)
 
+    # In Fight Club mode with a specific round, show only that round
+    if fc_round_id:
+        debates = debates.filter(round_id=fc_round_id)
+
+    # In Fight Club mode, load historical team names from ShuffleLog
+    historical_team_names = {}
+    if tournament.pref('fight_club_mode'):
+        from speakershuffler.feedback import get_historical_team_names
+        historical_team_names = get_historical_team_names(tournament, source.pk)
+
     choices = [(None, _("-- Adjudicators --"))]
     for debate in debates:
         # Need to associate the submission status to Adjudicator objects
@@ -254,7 +266,13 @@ def make_feedback_form_class_for_team(source, tournament, submission_fields, con
         round_choices = []
         for adj, pos in das:
             round_choices.append(adj_choice(adj, debate, pos))
-        choices.append((debate.round.name, round_choices))
+
+        # Include historical team name in the optgroup label for Fight Club
+        label = debate.round.name
+        team_name = historical_team_names.get(debate.round_id)
+        if team_name:
+            label = f"{label} ({team_name})"
+        choices.append((label, round_choices))
 
     class FeedbackForm(BaseFeedbackForm):
         _tournament = tournament  # BaseFeedbackForm setting

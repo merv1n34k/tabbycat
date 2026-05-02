@@ -49,6 +49,7 @@ urlpatterns = [
     path('admin/users/',            include('users.urls_admin')),
     path('admin/venues/',           include('venues.urls_admin')),
     path('admin/registration/',     include('registration.urls_admin')),
+    path('admin/shuffle/',          include('speakershuffler.urls')),
 
     # Application URLs for assistant pages
     path('assistant/feedback/',     include('adjfeedback.urls_assistant')),

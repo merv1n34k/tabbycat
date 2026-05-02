@@ -50,6 +50,15 @@ OPTIONS_TO_CONFIG_MAPPING = {
 def DrawManager(round: Round, active_only: bool = True, draw_type: Round.DrawType | str | None = None):  # noqa: N802 (factory function)
     teams_in_debate = round.tournament.pref('teams_in_debate')
     draw_type = draw_type or round.draw_type
+
+    # Fight Club mode: use speaker-standings-based power pairing
+    if (round.tournament.pref('fight_club_mode')
+            and round.stage == Round.Stage.PRELIMINARY
+            and draw_type == Round.DrawType.POWERPAIRED):
+        from speakershuffler.draw import FightClubDrawManager
+        logger.debug("Using FightClubDrawManager for Fight Club mode")
+        return FightClubDrawManager(round, active_only)
+
     try:
         if teams_in_debate in [2, 4]:
             klass = DRAW_MANAGER_CLASSES[(teams_in_debate, round.draw_type)]

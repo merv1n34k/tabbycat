@@ -506,7 +506,16 @@ class Round(models.Model):
         if check_ins:
             populate_checkins(debates, self.tournament)
 
+        # In Fight Club mode, replace prefetched speaker_set with historical
+        # assignments so that past rounds show the correct speakers.
+        if speakers and self.tournament.pref('fight_club_mode'):
+            self._patch_historical_speakers(debates)
+
         return debates
+
+    def _patch_historical_speakers(self, debates):
+        from speakershuffler.historical import patch_historical_speakers
+        patch_historical_speakers(debates)
 
     # --------------------------------------------------------------------------
     # Convenience querysets

@@ -244,18 +244,14 @@ class TabbycatTableBuilder(BaseTableBuilder):
         return use_team_code_names(self.tournament, self.admin, user=self.user)
 
     def _team_short_name(self, team):
-        """Returns the appropriate short name for the team, accounting for team code name preference."""
         if self._use_team_code_names:
             return escape(team.code_name)
-        else:
-            return escape(team.short_name)
+        return escape(team.short_name)
 
     def _team_long_name(self, team):
-        """Returns the appropriate long name for the team, accounting for team code name preference."""
         if self._use_team_code_names:
             return escape(team.code_name)
-        else:
-            return escape(team.long_name)
+        return escape(team.long_name)
 
     def _adjudicator_record_link(self, adj, suffix=""):
         unredact = self.admin and has_permission(self.user, Permission.VIEW_ANONYMOUS, self.tournament)

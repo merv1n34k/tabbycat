@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n debate_tags %}
+
+{% block head-title %}{% trans "Shuffle History" %}{% endblock %}
+{% block page-title %}{% trans "Shuffle History" %}{% endblock %}
+
+{% block page-subnav-sections %}
+  <a class="btn btn-outline-primary" href="{% roundurl 'speaker-shuffle-edit' %}">
+    <i data-feather="chevron-left"></i> {% trans "Edit Shuffle" %}
+  </a>
+{% endblock %}
+
+{% block content %}
+
+  {% for log in shuffle_logs %}
+  <div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>{{ log.round.name }}</strong>
+      <span class="text-muted">{{ log.timestamp }}</span>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm table-striped mb-0">
+        <thead>
+          <tr>
+            <th class="pl-3">{% trans "Team" %}</th>
+            <th>{% trans "Speakers" %}</th>
+            <th class="text-right">{% trans "Total" %}</th>
+            <th class="text-right pr-3">{% trans "Weighted" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for team_name, speakers in log.team_assignments.items %}
+            {% for speaker in speakers %}
+            <tr>
+              {% if forloop.first %}
+                <td class="pl-3" rowspan="{{ speakers|length }}"><strong>{{ team_name }}</strong></td>
+              {% endif %}
+              <td>{{ speaker.name }}</td>
+              <td class="text-right">{% if speaker.total != None %}{{ speaker.total }}{% else %}&mdash;{% endif %}</td>
+              <td class="text-right pr-3">{% if speaker.weighted != None %}{{ speaker.weighted }}{% else %}&mdash;{% endif %}</td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% empty %}
+  <div class="alert alert-secondary mt-3 text-center">
+    {% trans "No shuffles recorded yet." %}
+  </div>
+  {% endfor %}
+
+{% endblock content %}

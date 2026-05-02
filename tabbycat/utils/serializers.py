@@ -77,7 +77,7 @@ class DebateSerializerMixin(serializers.ModelSerializer):
         return adjudicators
 
     def team_representation(self, debate_team):
-        return TeamSerializer(debate_team.team).data
+        return TeamSerializer(debate_team.team, context=self.context).data
 
     def get_teams(self, obj):
         sides = {side: None for (side) in self.context['sides']}

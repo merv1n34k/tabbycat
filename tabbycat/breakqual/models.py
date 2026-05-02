@@ -42,6 +42,7 @@ class BreakCategory(models.Model):
         ('aida-2016-easters', _("AIDA 2016 (Easters)")),
         ('aida-2016-australs', _("AIDA 2016 (Australs)")),
         ('aida-2019-australs-open', _("AIDA 2019 (Australs, Dynamic Cap)")),
+        ('fight-club', _("Fight Club (by speakers)")),
     ]
 
     rule = models.CharField(max_length=25, choices=BREAK_QUALIFICATION_CHOICES, default='standard',

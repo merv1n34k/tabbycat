@@ -35,6 +35,12 @@
 
 {% block page-subnav-actions %}
 
+  {% if pref.fight_club_mode and round.seq > 1 and round.draw_status == round.Status.NONE %}
+    <a class="btn btn-primary" href="{% roundurl 'speaker-shuffle-edit' round %}">
+      <i data-feather="shuffle"></i> {% trans "Shuffle Speakers" %}
+    </a>
+  {% endif %}
+
   {% if round.draw_status != round.Status.NONE %}
     <a class="btn btn-outline-success " href="{% roundurl 'draw' round %}">
       {% trans "View Draw" %} <i data-feather="chevron-right"></i>

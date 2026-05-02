@@ -674,6 +674,13 @@ class CreateDrawView(DrawStatusEdit):
 
                 self.round = round_locked
 
+                # Fight Club mode: ensure speakers have been shuffled before creating the draw
+                if self.tournament.pref('fight_club_mode') and self.round.seq > 1:
+                    from speakershuffler.models import ShuffleLog
+                    if not ShuffleLog.objects.filter(round=self.round).exists():
+                        messages.warning(request, _("Speakers must be shuffled before creating the draw. Redirecting to shuffle page."))
+                        return HttpResponseRedirect(reverse_round('speaker-shuffle-edit', self.round))
+
                 manager = DrawManager(self.round)
                 manager.create()
 
@@ -966,4 +973,6 @@ class EditDebateTeamsView(DebateDragAndDropMixin, AdministratorMixin, TemplateVi
 
     def debates_or_panels_factory(self, debates):
         return EditDebateTeamsDebateSerializer(
-            debates, many=True, context={'sides': self.tournament.sides})
+            debates, many=True, context={
+                'sides': self.tournament.sides,
+            })

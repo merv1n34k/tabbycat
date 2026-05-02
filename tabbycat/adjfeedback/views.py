@@ -6,7 +6,7 @@ import math
 from django.contrib import messages
 from django.db.models import Count, F, Q
 from django.db.models.functions import Coalesce
-from django.forms import HiddenInput
+from django.forms import HiddenInput, Textarea
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.utils.html import conditional_escape, escape
@@ -867,6 +867,7 @@ class AdjFeedbackQuestionsFormset(CustomQuestionFormsetView):
         'widgets': {
             'tournament': HiddenInput,
             'for_content_type': HiddenInput,
+            'help_text': Textarea(attrs={'rows': 3}),
         },
     }
     question_model = AdjudicatorFeedback
